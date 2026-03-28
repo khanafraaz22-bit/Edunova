@@ -1,7 +1,10 @@
 const Database = require('better-sqlite3');
 const path = require('path');
 
-const dbPath = path.join(__dirname, 'edunova.db');
+// On Render, use persistent disk at /var/data; locally use service directory
+const dbPath = process.env.NODE_ENV === 'production'
+  ? '/var/data/edunova.db'
+  : path.join(__dirname, 'edunova.db');
 const db = new Database(dbPath);
 
 // Enable WAL mode for better performance

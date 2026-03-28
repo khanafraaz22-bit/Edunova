@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: edunova-backend
+    runtime: node
+    rootDir: server
+    buildCommand: npm install
+    startCommand: node index.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: CLIENT_URL
+        sync: false
+    disk:
+      name: edunova-db
+      mountPath: /var/data
+      sizeGB: 1
