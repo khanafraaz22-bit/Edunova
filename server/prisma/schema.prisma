@@ -1,0 +1,100 @@
+datasource db {
+  provider = "sqlite"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           Int       @id @default(autoincrement())
+  name         String
+  email        String    @unique
+  passwordHash String
+  xp           Int       @default(0)
+  streak       Int       @default(0)
+  lastLogin    DateTime?
+  createdAt    DateTime  @default(now())
+
+  courses     Course[]
+  progress    Progress[]
+  quizzes     Quiz[]
+  chats       Chat[]
+  resetTokens ResetToken[]
+}
+
+model Course {
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  playlistUrl  String
+  title        String
+  videoCount   Int      @default(0)
+  analysisJson String   @default("{}")
+  createdAt    DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id])
+  videos  Video[]
+  quizzes Quiz[]
+  chats   Chat[]
+}
+
+model Video {
+  id          Int    @id @default(autoincrement())
+  courseId    Int
+  youtubeId   String
+  title       String
+  description String @default("")
+  transcript  String @default("")
+  duration    String @default("")
+  orderIndex  Int    @default(0)
+
+  course   Course     @relation(fields: [courseId], references: [id])
+  progress Progress[]
+}
+
+model Progress {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  videoId   Int
+  status    String   @default("unwatched")
+  watchedAt DateTime?
+
+  user  User  @relation(fields: [userId], references: [id])
+  video Video @relation(fields: [videoId], references: [id])
+
+  @@unique([userId, videoId])
+}
+
+model Quiz {
+  id            Int      @id @default(autoincrement())
+  userId        Int
+  courseId       Int
+  questionsJson String   @default("[]")
+  answersJson   String   @default("[]")
+  score         Float    @default(0)
+  takenAt       DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id])
+  course Course @relation(fields: [courseId], references: [id])
+}
+
+model Chat {
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  courseId      Int
+  messagesJson String   @default("[]")
+  createdAt    DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id])
+  course Course @relation(fields: [courseId], references: [id])
+}
+
+model ResetToken {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+
+  user User @relation(fields: [userId], references: [id])
+}
