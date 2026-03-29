@@ -3,198 +3,168 @@ import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
 import useAuthStore from '../store/useAuthStore'
+import { useTheme } from '../context/ThemeContext'
+import Nova from '../components/Nova'
 import TCModal from '../components/TCModal'
+import { HiOutlineEye, HiOutlineEyeSlash, HiOutlineMoon, HiOutlineSun } from 'react-icons/hi2'
+import { HiOutlineArrowRight } from 'react-icons/hi'
 
-function passwordStrength(pwd) {
-  let score = 0
-  if (pwd.length >= 8) score++
-  if (/[A-Z]/.test(pwd)) score++
-  if (/[0-9]/.test(pwd)) score++
-  if (/[^A-Za-z0-9]/.test(pwd)) score++
-  return score
+function pwdStrength(p) {
+  let s = 0
+  if (p.length >= 8)              s++
+  if (/[A-Z]/.test(p))            s++
+  if (/[0-9]/.test(p))            s++
+  if (/[^A-Za-z0-9]/.test(p))    s++
+  return s
 }
-
-const strengthLabels = ['', 'WEAK', 'FAIR', 'GOOD', 'STRONG']
-const strengthColors = ['', '#f72585', '#f59e0b', '#06d6a0', '#00f5ff']
-
-function GridLines() {
-  return (
-    <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0.05, pointerEvents: 'none' }} xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <pattern id="grid2" width="40" height="40" patternUnits="userSpaceOnUse">
-          <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#7b2fff" strokeWidth="0.5" />
-        </pattern>
-      </defs>
-      <rect width="100%" height="100%" fill="url(#grid2)" />
-    </svg>
-  )
-}
-
-const inputStyle = {
-  width: '100%', background: 'rgba(123,47,255,0.04)',
-  border: '1px solid rgba(123,47,255,0.2)',
-  color: '#c8d0e0', padding: '11px 14px',
-  fontFamily: 'JetBrains Mono, monospace', fontSize: 13,
-  outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.2s',
-}
+const STRENGTH_LABELS = ['', 'Weak', 'Fair', 'Good', 'Strong']
+const STRENGTH_COLORS = ['', 'var(--accent-danger)', 'var(--accent-warning)', 'var(--accent)', 'var(--accent-success)']
 
 export default function SignupPage() {
   const navigate = useNavigate()
   const { signup } = useAuthStore()
-  const [form, setForm] = useState({ name: '', email: '', password: '', confirm: '' })
-  const [loading, setLoading] = useState(false)
-  const [showTCModal, setShowTCModal] = useState(false)
-  const [showPwd, setShowPwd] = useState(false)
+  const { theme, toggleTheme } = useTheme()
+  const [form, setForm]         = useState({ name: '', email: '', password: '', confirm: '' })
+  const [showPass, setShowPass] = useState(false)
+  const [loading, setLoading]   = useState(false)
+  const [showTC, setShowTC]     = useState(false)
 
-  const handle = (e) => setForm({ ...form, [e.target.name]: e.target.value })
-  const strength = passwordStrength(form.password)
+  const handle = (k) => (e) => setForm(p => ({ ...p, [k]: e.target.value }))
+  const strength = pwdStrength(form.password)
+  const pwdMatch = form.confirm && form.password !== form.confirm
 
   const submit = async (e) => {
     e.preventDefault()
-    if (!form.name || !form.email || !form.password) return toast.error('Fill in all fields')
-    if (form.password.length < 8) return toast.error('Password must be at least 8 characters')
+    if (!form.name || !form.email || !form.password || !form.confirm) return toast.error('Please fill in all fields')
     if (form.password !== form.confirm) return toast.error('Passwords do not match')
+    if (form.password.length < 6) return toast.error('Password must be at least 6 characters')
+    setShowTC(true)
+  }
+
+  const onAccept = async () => {
+    setShowTC(false)
     setLoading(true)
     try {
       await signup(form.name, form.email, form.password)
-      setShowTCModal(true)
+      toast.success('Account created! Welcome to Edunova.')
+      navigate('/dashboard')
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Registration failed')
+      toast.error(err.response?.data?.error || 'Signup failed. Try again.')
+    } finally {
       setLoading(false)
     }
   }
 
-  const acceptTC = () => {
-    setShowTCModal(false)
-    toast.success(`Access granted, ${form.name.split(' ')[0]}`)
-    navigate('/dashboard')
-  }
-
   return (
-    <div style={{ minHeight: '100vh', background: '#020209', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 20px', position: 'relative', overflow: 'hidden' }}>
-      <GridLines />
-      <div style={{ position: 'absolute', top: '15%', right: '10%', width: 500, height: 500, borderRadius: '50%', background: 'radial-gradient(circle, rgba(123,47,255,0.07) 0%, transparent 70%)', pointerEvents: 'none' }} />
-      <div style={{ position: 'absolute', bottom: '10%', left: '10%', width: 350, height: 350, borderRadius: '50%', background: 'radial-gradient(circle, rgba(0,245,255,0.05) 0%, transparent 70%)', pointerEvents: 'none' }} />
+    <div style={{ minHeight: '100vh', background: 'var(--bg-base)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px 16px', position: 'relative' }}>
+      <div className="cyber-grid" style={{ position: 'absolute', inset: 0, opacity: 0.25, pointerEvents: 'none' }} />
 
-      <motion.div
-        initial={{ opacity: 0, y: 24 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45 }}
-        style={{ width: '100%', maxWidth: 460 }}
+      {/* Theme toggle */}
+      <div style={{ position: 'fixed', top: 16, right: 16, zIndex: 10 }}>
+        <button onClick={toggleTheme} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', padding: '7px 10px', cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', transition: 'all 0.15s' }}>
+          {theme === 'dark' ? <HiOutlineSun size={15} /> : <HiOutlineMoon size={15} />}
+        </button>
+      </div>
+
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
+        style={{ width: '100%', maxWidth: 420, position: 'relative', zIndex: 1 }}
       >
-        {/* Logo */}
-        <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <Link to="/" style={{ textDecoration: 'none' }}>
-            <div style={{ fontFamily: 'Orbitron, sans-serif', fontWeight: 900, fontSize: 26, letterSpacing: 4, background: 'linear-gradient(135deg, #00f5ff, #7b2fff)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-              EDUNOVA
-            </div>
-          </Link>
-          <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, color: '#4a5070', letterSpacing: 3, marginTop: 6 }}>// NEW OPERATOR REGISTRATION</div>
+        {/* Header */}
+        <div style={{ textAlign: 'center', marginBottom: 28 }}>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 14 }}>
+            <Nova size={72} state="idle" assembly={1} showGlow />
+          </div>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 24, color: 'var(--text-primary)', letterSpacing: '-0.5px', marginBottom: 6 }}>
+            Create your account
+          </h1>
+          <p style={{ fontFamily: 'var(--font-body)', fontSize: 14, color: 'var(--text-secondary)' }}>
+            Start learning with Nova for free
+          </p>
         </div>
 
-        {/* Panel */}
-        <div style={{
-          background: 'rgba(6,6,15,0.85)',
-          border: '1px solid rgba(123,47,255,0.2)',
-          padding: '36px 32px',
-          position: 'relative',
-          clipPath: 'polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 20px 100%, 0 calc(100% - 20px))',
-        }}>
-          <div style={{ position: 'absolute', top: 0, left: 0, width: 24, height: 24, borderTop: '2px solid #7b2fff', borderLeft: '2px solid #7b2fff' }} />
-          <div style={{ position: 'absolute', bottom: 0, right: 0, width: 24, height: 24, borderBottom: '2px solid #00f5ff', borderRight: '2px solid #00f5ff' }} />
+        {/* Card */}
+        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-xl)', padding: '32px 28px', boxShadow: 'var(--shadow-md)' }}>
+          <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
-          <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-            {[
-              { label: 'OPERATOR_NAME', name: 'name', type: 'text', placeholder: 'Your Name', autoComplete: 'name' },
-              { label: 'EMAIL_ADDRESS', name: 'email', type: 'email', placeholder: 'operator@domain.com', autoComplete: 'email' },
-            ].map(({ label, name, type, placeholder, autoComplete }) => (
-              <div key={name}>
-                <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, color: '#4a5070', letterSpacing: 2, marginBottom: 8 }}>{label}</div>
-                <input
-                  type={type} name={name} placeholder={placeholder}
-                  value={form[name]} onChange={handle} autoComplete={autoComplete}
-                  style={inputStyle}
-                  onFocus={e => e.target.style.borderColor = 'rgba(123,47,255,0.6)'}
-                  onBlur={e => e.target.style.borderColor = 'rgba(123,47,255,0.2)'}
-                />
-              </div>
-            ))}
-
+            {/* Name */}
             <div>
-              <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, color: '#4a5070', letterSpacing: 2, marginBottom: 8 }}>PASSWORD_HASH</div>
+              <label style={{ display: 'block', fontFamily: 'var(--font-body)', fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 6 }}>Full name</label>
+              <input type="text" value={form.name} onChange={handle('name')} placeholder="Aarav Khan" autoComplete="name" className="input-dark" />
+            </div>
+
+            {/* Email */}
+            <div>
+              <label style={{ display: 'block', fontFamily: 'var(--font-body)', fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 6 }}>Email</label>
+              <input type="email" value={form.email} onChange={handle('email')} placeholder="you@example.com" autoComplete="email" className="input-dark" />
+            </div>
+
+            {/* Password */}
+            <div>
+              <label style={{ display: 'block', fontFamily: 'var(--font-body)', fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 6 }}>Password</label>
               <div style={{ position: 'relative' }}>
-                <input
-                  type={showPwd ? 'text' : 'password'} name="password"
-                  placeholder="Min. 8 characters"
-                  value={form.password} onChange={handle}
-                  style={{ ...inputStyle, paddingRight: 44 }}
-                  onFocus={e => e.target.style.borderColor = 'rgba(123,47,255,0.6)'}
-                  onBlur={e => e.target.style.borderColor = 'rgba(123,47,255,0.2)'}
-                />
-                <button type="button" onClick={() => setShowPwd(!showPwd)}
-                  style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#4a5070', fontSize: 13, padding: 2 }}
-                  onMouseEnter={e => e.currentTarget.style.color = '#7b2fff'}
-                  onMouseLeave={e => e.currentTarget.style.color = '#4a5070'}
+                <input type={showPass ? 'text' : 'password'} value={form.password} onChange={handle('password')} placeholder="Min. 6 characters" autoComplete="new-password" className="input-dark" style={{ paddingRight: 44 }} />
+                <button type="button" onClick={() => setShowPass(p => !p)}
+                  style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', padding: 4, transition: 'color 0.15s' }}
+                  onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
+                  onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
                 >
-                  {showPwd ? '●' : '○'}
+                  {showPass ? <HiOutlineEyeSlash size={16} /> : <HiOutlineEye size={16} />}
                 </button>
               </div>
-              {form.password && (
+              {/* Strength meter */}
+              {form.password.length > 0 && (
                 <div style={{ marginTop: 8 }}>
-                  <div style={{ display: 'flex', gap: 3, marginBottom: 4 }}>
+                  <div style={{ display: 'flex', gap: 4, marginBottom: 4 }}>
                     {[1,2,3,4].map(i => (
-                      <div key={i} style={{ flex: 1, height: 2, background: i <= strength ? strengthColors[strength] : 'rgba(255,255,255,0.08)', transition: 'background 0.3s' }} />
+                      <div key={i} style={{ flex: 1, height: 3, borderRadius: 2, background: i <= strength ? STRENGTH_COLORS[strength] : 'var(--border)', transition: 'background 0.25s' }} />
                     ))}
                   </div>
-                  <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 9, color: strengthColors[strength], letterSpacing: 2 }}>PWD_STRENGTH: {strengthLabels[strength]}</div>
+                  <div style={{ fontFamily: 'var(--font-body)', fontSize: 11, color: STRENGTH_COLORS[strength] }}>
+                    {STRENGTH_LABELS[strength]}
+                  </div>
                 </div>
               )}
             </div>
 
+            {/* Confirm */}
             <div>
-              <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, color: '#4a5070', letterSpacing: 2, marginBottom: 8 }}>CONFIRM_HASH</div>
+              <label style={{ display: 'block', fontFamily: 'var(--font-body)', fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 6 }}>Confirm password</label>
               <input
-                type="password" name="confirm"
-                placeholder="Repeat password"
-                value={form.confirm} onChange={handle}
-                style={inputStyle}
-                onFocus={e => e.target.style.borderColor = 'rgba(123,47,255,0.6)'}
-                onBlur={e => e.target.style.borderColor = 'rgba(123,47,255,0.2)'}
+                type="password"
+                value={form.confirm}
+                onChange={handle('confirm')}
+                placeholder="••••••••"
+                autoComplete="new-password"
+                className="input-dark"
+                style={{ borderColor: pwdMatch ? 'var(--accent-danger)' : undefined }}
               />
-              {form.confirm && form.password !== form.confirm && (
-                <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 9, color: '#f72585', marginTop: 4, letterSpacing: 1 }}>ERR: HASH_MISMATCH</div>
+              {pwdMatch && (
+                <div style={{ fontFamily: 'var(--font-body)', fontSize: 11, color: 'var(--accent-danger)', marginTop: 5 }}>
+                  Passwords don't match
+                </div>
               )}
             </div>
 
-            <motion.button
-              type="submit"
-              disabled={loading}
-              whileHover={{ scale: 1.01 }}
-              whileTap={{ scale: 0.98 }}
-              style={{
-                width: '100%', padding: '13px', marginTop: 4,
-                background: loading ? 'rgba(123,47,255,0.06)' : 'linear-gradient(135deg, rgba(123,47,255,0.2), rgba(0,245,255,0.1))',
-                border: `1px solid ${loading ? 'rgba(123,47,255,0.2)' : '#7b2fff'}`,
-                color: loading ? '#4a5070' : '#c4a9ff',
-                fontFamily: 'Orbitron, sans-serif', fontSize: 11, letterSpacing: 3,
-                cursor: loading ? 'not-allowed' : 'pointer',
-                transition: 'all 0.2s',
-              }}
-            >
-              {loading ? 'INITIALIZING...' : 'CREATE ACCOUNT →'}
-            </motion.button>
+            {/* Submit */}
+            <button type="submit" disabled={loading || !!pwdMatch} className="btn-primary" style={{ width: '100%', justifyContent: 'center', padding: '12px', fontSize: 14, marginTop: 4 }}>
+              {loading ? (
+                <span style={{ display: 'flex', gap: 4 }}>
+                  {[0,1,2].map(i => <span key={i} style={{ width: 5, height: 5, borderRadius: '50%', background: 'white', animation: `glowPulse 1s ease-in-out ${i*0.15}s infinite` }} />)}
+                </span>
+              ) : (
+                <>Create account <HiOutlineArrowRight size={15} /></>
+              )}
+            </button>
           </form>
         </div>
 
-        <div style={{ marginTop: 20, textAlign: 'center', fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: '#4a5070', letterSpacing: 1 }}>
-          HAVE CREDENTIALS?{' '}
-          <Link to="/login" style={{ color: '#7b2fff', textDecoration: 'none' }}>
-            LOGIN →
-          </Link>
-        </div>
+        <p style={{ textAlign: 'center', fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--text-muted)', marginTop: 20 }}>
+          Already have an account?{' '}
+          <Link to="/login" style={{ color: 'var(--accent)', fontWeight: 500, textDecoration: 'none' }}>Sign in</Link>
+        </p>
       </motion.div>
 
-      <TCModal isOpen={showTCModal} onAccept={acceptTC} />
+      {showTC && <TCModal onAccept={onAccept} onClose={() => setShowTC(false)} />}
     </div>
   )
 }

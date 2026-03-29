@@ -14,7 +14,7 @@ function HudPanel({ children, style = {}, cornerColor = '#00f5ff', accentColor =
   return (
     <div style={{
       background: 'rgba(4,4,12,0.92)',
-      border: '1px solid rgba(0,245,255,0.1)',
+      border: '1px solid var(--border)',
       position: 'relative',
       clipPath: 'polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px))',
       ...style,
@@ -31,19 +31,19 @@ function MarkdownContent({ text }) {
   if (!text) return null
   const lines = text.split('\n')
   return (
-    <div style={{ fontFamily: 'Rajdhani, sans-serif', fontSize: 14, lineHeight: 1.7, color: '#a8b4c8' }}>
+    <div style={{ fontFamily: 'var(--font-body)', fontSize: 14, lineHeight: 1.7, color: '#a8b4c8' }}>
       {lines.map((line, i) => {
-        if (line.startsWith('### ')) return <div key={i} style={{ fontFamily: 'Orbitron, sans-serif', fontSize: 10, color: '#00f5ff', letterSpacing: 2, marginTop: 12, marginBottom: 4 }}>{line.slice(4)}</div>
-        if (line.startsWith('## ')) return <div key={i} style={{ fontFamily: 'Orbitron, sans-serif', fontSize: 11, color: '#00f5ff', letterSpacing: 2, marginTop: 14, marginBottom: 5 }}>{line.slice(3)}</div>
-        if (line.startsWith('# '))  return <div key={i} style={{ fontFamily: 'Orbitron, sans-serif', fontSize: 13, color: '#00f5ff', letterSpacing: 2, marginTop: 16, marginBottom: 6 }}>{line.slice(2)}</div>
-        if (line.startsWith('- ') || line.startsWith('* ')) return <div key={i} style={{ paddingLeft: 14, marginBottom: 3, color: '#8a94b0' }}>▸ {line.slice(2)}</div>
+        if (line.startsWith('### ')) return <div key={i} style={{ fontFamily: 'var(--font-display)', fontSize: 10, color: 'var(--accent)', letterSpacing: 2, marginTop: 12, marginBottom: 4 }}>{line.slice(4)}</div>
+        if (line.startsWith('## ')) return <div key={i} style={{ fontFamily: 'var(--font-display)', fontSize: 11, color: 'var(--accent)', letterSpacing: 2, marginTop: 14, marginBottom: 5 }}>{line.slice(3)}</div>
+        if (line.startsWith('# '))  return <div key={i} style={{ fontFamily: 'var(--font-display)', fontSize: 13, color: 'var(--accent)', letterSpacing: 2, marginTop: 16, marginBottom: 6 }}>{line.slice(2)}</div>
+        if (line.startsWith('- ') || line.startsWith('* ')) return <div key={i} style={{ paddingLeft: 14, marginBottom: 3, color: 'var(--text-secondary)' }}>▸ {line.slice(2)}</div>
         if (!line.trim()) return <div key={i} style={{ height: 8 }} />
         const parts = line.split(/(\*\*[^*]+\*\*|`[^`]+`)/g)
         return (
           <div key={i} style={{ marginBottom: 3 }}>
             {parts.map((p, j) => {
-              if (p.startsWith('**') && p.endsWith('**')) return <strong key={j} style={{ color: '#c8d0e0' }}>{p.slice(2,-2)}</strong>
-              if (p.startsWith('`') && p.endsWith('`'))   return <code key={j} style={{ fontFamily: 'JetBrains Mono, monospace', background: 'rgba(0,245,255,0.08)', padding: '1px 6px', fontSize: 12, color: '#00f5ff' }}>{p.slice(1,-1)}</code>
+              if (p.startsWith('**') && p.endsWith('**')) return <strong key={j} style={{ color: 'var(--text-secondary)' }}>{p.slice(2,-2)}</strong>
+              if (p.startsWith('`') && p.endsWith('`'))   return <code key={j} style={{ fontFamily: 'var(--font-mono)', background: 'rgba(0,245,255,0.08)', padding: '1px 6px', fontSize: 12, color: 'var(--accent)' }}>{p.slice(1,-1)}</code>
               return <span key={j}>{p}</span>
             })}
           </div>
@@ -62,7 +62,7 @@ function AILoading({ message = 'NYRA IS THINKING...' }) {
           <div key={i} style={{ width: 4, height: 24, background: '#00f5ff', opacity: 0.3, animation: `glowPulse 0.8s ease-in-out ${i*0.1}s infinite`, borderRadius: 2 }} />
         ))}
       </div>
-      <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, color: '#4a5070', letterSpacing: 2 }}>{message}</div>
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-muted)', letterSpacing: 2 }}>{message}</div>
     </div>
   )
 }
@@ -76,7 +76,7 @@ function AIModal({ title, label, isOpen, onClose, children, maxWidth = 700 }) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        style={{ position: 'fixed', inset: 0, background: 'rgba(2,2,9,0.88)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, backdropFilter: 'blur(8px)' }}
+        style={{ position: 'fixed', inset: 0, background: 'rgba(8,11,20,0.88)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, backdropFilter: 'blur(8px)' }}
         onClick={onClose}
       >
         <motion.div
@@ -86,7 +86,7 @@ function AIModal({ title, label, isOpen, onClose, children, maxWidth = 700 }) {
           transition={{ type: 'spring', damping: 22, stiffness: 300 }}
           onClick={e => e.stopPropagation()}
           style={{
-            background: '#03030b', border: '1px solid rgba(0,245,255,0.15)',
+            background: 'var(--bg-elevated)', border: '1px solid rgba(0,245,255,0.15)',
             width: '100%', maxWidth,
             maxHeight: '90vh', display: 'flex', flexDirection: 'column',
             position: 'relative',
@@ -99,11 +99,11 @@ function AIModal({ title, label, isOpen, onClose, children, maxWidth = 700 }) {
           {/* Header */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 24px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
             <div>
-              <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 9, color: '#4a5070', letterSpacing: 3, marginBottom: 3 }}>{label || '// AI MODULE'}</div>
-              <div style={{ fontFamily: 'Orbitron, sans-serif', fontSize: 13, color: '#dde4f0', letterSpacing: 2 }}>{title}</div>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--text-muted)', letterSpacing: 3, marginBottom: 3 }}>{label || '// AI MODULE'}</div>
+              <div style={{ fontFamily: 'var(--font-display)', fontSize: 13, color: 'var(--text-primary)', letterSpacing: 2 }}>{title}</div>
             </div>
             <button onClick={onClose}
-              style={{ background: 'none', border: '1px solid rgba(255,255,255,0.06)', cursor: 'pointer', color: '#4a5070', width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }}
+              style={{ background: 'none', border: '1px solid var(--border)', cursor: 'pointer', color: 'var(--text-muted)', width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }}
               onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(247,37,133,0.4)'; e.currentTarget.style.color = '#f72585' }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = '#4a5070' }}
             >
@@ -121,26 +121,26 @@ function AIModal({ title, label, isOpen, onClose, children, maxWidth = 700 }) {
 
 const inputStyle = {
   width: '100%', background: 'rgba(0,245,255,0.03)', border: '1px solid rgba(0,245,255,0.15)',
-  color: '#c8d0e0', padding: '10px 14px', fontFamily: 'Rajdhani, sans-serif', fontSize: 14,
+  color: 'var(--text-secondary)', padding: '10px 14px', fontFamily: 'var(--font-body)', fontSize: 14,
   outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.2s',
 }
 
 const btnPrimary = {
-  padding: '10px 20px', background: 'linear-gradient(135deg, rgba(0,245,255,0.12), rgba(123,47,255,0.12))',
-  border: '1px solid rgba(0,245,255,0.3)', color: '#00f5ff',
-  fontFamily: 'Orbitron, sans-serif', fontSize: 9, letterSpacing: 2,
+  padding: '10px 20px', background: 'var(--accent-dim)',
+  border: '1px solid rgba(0,245,255,0.3)', color: 'var(--accent)',
+  fontFamily: 'var(--font-display)', fontSize: 9, letterSpacing: 2,
   cursor: 'pointer', transition: 'all 0.2s', display: 'inline-flex', alignItems: 'center', gap: 8,
 }
 
 const btnGhost = {
   padding: '9px 16px', background: 'transparent', border: '1px solid rgba(255,255,255,0.08)',
-  color: '#6a7090', fontFamily: 'Orbitron, sans-serif', fontSize: 9, letterSpacing: 2,
+  color: 'var(--text-muted)', fontFamily: 'var(--font-display)', fontSize: 9, letterSpacing: 2,
   cursor: 'pointer', transition: 'all 0.2s',
 }
 
 function ResultBox({ children }) {
   return (
-    <div style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(0,245,255,0.08)', padding: '20px', maxHeight: 400, overflowY: 'auto' }}>
+    <div style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid var(--border)', padding: '20px', maxHeight: 400, overflowY: 'auto' }}>
       {children}
     </div>
   )
@@ -213,7 +213,7 @@ function TeachModal({ isOpen, onClose, courseId }) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         {!session ? (
           <>
-            <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, color: '#4a5070', letterSpacing: 1 }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-muted)', letterSpacing: 1 }}>
               Nyra will explain any topic from this course using the Socratic method.
             </div>
             <input style={inputStyle} placeholder="e.g., eigenvalues, dot product, gradient descent..." value={topic}
@@ -229,7 +229,7 @@ function TeachModal({ isOpen, onClose, courseId }) {
         ) : (
           <>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, background: 'rgba(0,245,255,0.08)', border: '1px solid rgba(0,245,255,0.2)', padding: '3px 10px', color: '#00f5ff', letterSpacing: 1 }}>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, background: 'rgba(0,245,255,0.08)', border: '1px solid rgba(0,245,255,0.2)', padding: '3px 10px', color: 'var(--accent)', letterSpacing: 1 }}>
                 TOPIC: {topic.toUpperCase()}
               </span>
               <button style={{ ...btnGhost, padding: '3px 10px', fontSize: 9 }} onClick={reset}>NEW TOPIC</button>
@@ -284,18 +284,18 @@ function FindModal({ isOpen, onClose, courseId }) {
         </div>
         {loading && <AILoading message="SCANNING TRANSCRIPTS..." />}
         {searched && results.length === 0 && (
-          <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, color: '#4a5070', textAlign: 'center', padding: '28px', letterSpacing: 1 }}>NO RESULTS FOR "{query.toUpperCase()}"</div>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-muted)', textAlign: 'center', padding: '28px', letterSpacing: 1 }}>NO RESULTS FOR "{query.toUpperCase()}"</div>
         )}
         {results.map((r, i) => (
           <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-            style={{ background: 'rgba(0,245,255,0.03)', border: '1px solid rgba(0,245,255,0.1)', padding: '14px 16px' }}>
+            style={{ background: 'rgba(0,245,255,0.03)', border: '1px solid var(--border)', padding: '14px 16px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, alignItems: 'center' }}>
-              <div style={{ fontFamily: 'Orbitron, sans-serif', fontSize: 10, color: '#00f5ff', letterSpacing: 1 }}>{r.videoTitle}</div>
-              <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 9, color: '#4a5070', background: 'rgba(0,245,255,0.06)', padding: '2px 8px', letterSpacing: 1 }}>
+              <div style={{ fontFamily: 'var(--font-display)', fontSize: 10, color: 'var(--accent)', letterSpacing: 1 }}>{r.videoTitle}</div>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--text-muted)', background: 'rgba(0,245,255,0.06)', padding: '2px 8px', letterSpacing: 1 }}>
                 {Math.round((r.relevance || 0.7) * 100)}% MATCH
               </div>
             </div>
-            <div style={{ fontFamily: 'Rajdhani, sans-serif', color: '#6a7090', fontSize: 13, lineHeight: 1.6 }}>{r.excerpt}</div>
+            <div style={{ fontFamily: 'var(--font-body)', color: 'var(--text-muted)', fontSize: 13, lineHeight: 1.6 }}>{r.excerpt}</div>
           </motion.div>
         ))}
       </div>
@@ -337,8 +337,8 @@ function calculateLayout(rawNodes, rawEdges) {
     data: { label: n.label || n.id },
     position: positions[n.id] || { x: 0, y: 0 },
     style: n.type === 'main'
-      ? { background: 'rgba(0,245,255,0.12)', border: '1px solid #00f5ff', padding: '8px 16px', color: '#e8eaf6', fontFamily: 'Orbitron, sans-serif', fontSize: 11, fontWeight: 700, minWidth: 120 }
-      : { background: 'rgba(123,47,255,0.1)', border: '1px solid rgba(123,47,255,0.4)', padding: '6px 12px', color: '#c8d0e0', fontSize: 12, minWidth: 100 },
+      ? { background: 'rgba(0,245,255,0.12)', border: '1px solid #00f5ff', padding: '8px 16px', color: '#e8eaf6', fontFamily: 'var(--font-display)', fontSize: 11, fontWeight: 700, minWidth: 120 }
+      : { background: 'rgba(123,47,255,0.1)', border: '1px solid rgba(123,47,255,0.4)', padding: '6px 12px', color: 'var(--text-secondary)', fontSize: 12, minWidth: 100 },
   }))
   const edges = rawEdges.map((e, i) => ({
     id: `e${i}`, source: String(e.source), target: String(e.target),
@@ -371,14 +371,14 @@ function MindMapModal({ isOpen, onClose, courseId }) {
       {loading && <AILoading message="BUILDING MIND MAP..." />}
       {!loading && generated && (
         <>
-          <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 9, color: '#4a5070', marginBottom: 10, letterSpacing: 1 }}>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--text-muted)', marginBottom: 10, letterSpacing: 1 }}>
             DRAG NODES · SCROLL TO ZOOM · DOUBLE-CLICK TO EXPAND
           </div>
-          <div style={{ height: 480, border: '1px solid rgba(0,245,255,0.1)', overflow: 'hidden', background: '#020209' }}>
+          <div style={{ height: 480, border: '1px solid var(--border)', overflow: 'hidden', background: 'var(--bg-base)' }}>
             <ReactFlow nodes={rfNodes} edges={rfEdges} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} fitView>
               <Background color="rgba(0,245,255,0.03)" gap={28} />
-              <Controls style={{ background: '#04040c', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 0 }} />
-              <MiniMap style={{ background: '#04040c', border: '1px solid rgba(255,255,255,0.08)' }} />
+              <Controls style={{ background: 'var(--bg-elevated)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 0 }} />
+              <MiniMap style={{ background: 'var(--bg-elevated)', border: '1px solid rgba(255,255,255,0.08)' }} />
             </ReactFlow>
           </div>
           <button style={{ ...btnGhost, marginTop: 12 }} onClick={() => { setGenerated(false); run() }}>REGENERATE</button>
@@ -442,7 +442,7 @@ function ExamModal({ isOpen, onClose, courseId, analysis }) {
     <AIModal title="AI EXAMINATION" label="// ADAPTIVE EXAM ENGINE" isOpen={isOpen} onClose={() => { clearInterval(timerRef.current); onClose() }} maxWidth={760}>
       {phase === 'config' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, color: '#4a5070', letterSpacing: 1 }}>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-muted)', letterSpacing: 1 }}>
             Configure your exam. Nyra generates questions from course content.
           </div>
           {[
@@ -450,7 +450,7 @@ function ExamModal({ isOpen, onClose, courseId, analysis }) {
             { label: 'TIME_LIMIT', key: 'timeMinutes', options: [{value:0,label:'No timer'},{value:15,label:'15 min'},{value:30,label:'30 min'},{value:45,label:'45 min'}] },
           ].map(({ label, key, options }) => (
             <div key={key}>
-              <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 9, color: '#4a5070', letterSpacing: 2, marginBottom: 8 }}>{label}</div>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--text-muted)', letterSpacing: 2, marginBottom: 8 }}>{label}</div>
               <select style={selectStyle} value={config[key]} onChange={e => setConfig({ ...config, [key]: +e.target.value })}
                 onFocus={e => e.target.style.borderColor = 'rgba(0,245,255,0.5)'}
                 onBlur={e => e.target.style.borderColor = 'rgba(0,245,255,0.15)'}
@@ -467,33 +467,33 @@ function ExamModal({ isOpen, onClose, courseId, analysis }) {
 
       {phase === 'taking' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'rgba(0,245,255,0.04)', border: '1px solid rgba(0,245,255,0.12)' }}>
-            <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, color: '#4a5070', letterSpacing: 1 }}>{Object.keys(answers).length} / {questions.length} ANSWERED</span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'rgba(0,245,255,0.04)', border: '1px solid var(--border)' }}>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-muted)', letterSpacing: 1 }}>{Object.keys(answers).length} / {questions.length} ANSWERED</span>
             {config.timeMinutes > 0 && (
-              <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 14, color: timeLeft < 60 ? '#f72585' : '#00f5ff', fontWeight: 700, letterSpacing: 2 }}>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 14, color: timeLeft < 60 ? '#f72585' : '#00f5ff', fontWeight: 700, letterSpacing: 2 }}>
                 {formatTime(timeLeft)}
               </span>
             )}
           </div>
 
           {questions.map((q, qi) => (
-            <div key={q.id} style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.06)', padding: '18px' }}>
+            <div key={q.id} style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border)', padding: '18px' }}>
               <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
-                <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, color: '#00f5ff', letterSpacing: 1, flexShrink: 0 }}>Q{String(qi+1).padStart(2,'0')}</span>
-                <span style={{ fontFamily: 'Rajdhani, sans-serif', color: '#c8d0e0', fontSize: 14, lineHeight: 1.5 }}>{q.question}</span>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--accent)', letterSpacing: 1, flexShrink: 0 }}>Q{String(qi+1).padStart(2,'0')}</span>
+                <span style={{ fontFamily: 'var(--font-body)', color: 'var(--text-secondary)', fontSize: 14, lineHeight: 1.5 }}>{q.question}</span>
               </div>
 
               {q.type === 'mcq' && q.options?.map((opt, oi) => (
                 <label key={oi} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', marginBottom: 5, cursor: 'pointer', background: answers[q.id] === opt ? 'rgba(0,245,255,0.06)' : 'transparent', border: `1px solid ${answers[q.id] === opt ? 'rgba(0,245,255,0.25)' : 'rgba(255,255,255,0.05)'}`, transition: 'all 0.15s' }}>
                   <input type="radio" name={`q${q.id}`} value={opt} checked={answers[q.id] === opt} onChange={() => setAnswers({ ...answers, [q.id]: opt })} style={{ accentColor: '#00f5ff' }} />
-                  <span style={{ fontFamily: 'Rajdhani, sans-serif', fontSize: 13, color: '#c8d0e0' }}>{opt}</span>
+                  <span style={{ fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--text-secondary)' }}>{opt}</span>
                 </label>
               ))}
 
               {q.type === 'true-false' && ['true','false'].map(val => (
                 <label key={val} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', marginBottom: 5, cursor: 'pointer', background: answers[q.id] === val ? 'rgba(0,245,255,0.06)' : 'transparent', border: `1px solid ${answers[q.id] === val ? 'rgba(0,245,255,0.25)' : 'rgba(255,255,255,0.05)'}`, transition: 'all 0.15s' }}>
                   <input type="radio" name={`q${q.id}`} value={val} checked={answers[q.id] === val} onChange={() => setAnswers({ ...answers, [q.id]: val })} style={{ accentColor: '#00f5ff' }} />
-                  <span style={{ fontFamily: 'Rajdhani, sans-serif', fontSize: 13, color: '#c8d0e0', textTransform: 'capitalize' }}>{val}</span>
+                  <span style={{ fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--text-secondary)', textTransform: 'capitalize' }}>{val}</span>
                 </label>
               ))}
 
@@ -512,22 +512,22 @@ function ExamModal({ isOpen, onClose, courseId, analysis }) {
       {phase === 'result' && result && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ textAlign: 'center', padding: '24px', background: 'rgba(0,0,0,0.4)', border: `1px solid ${result.score >= 70 ? 'rgba(0,245,255,0.2)' : result.score >= 50 ? 'rgba(245,158,11,0.2)' : 'rgba(247,37,133,0.2)'}` }}>
-            <div style={{ fontFamily: 'Orbitron, sans-serif', fontSize: 48, fontWeight: 900, color: result.score >= 70 ? '#00f5ff' : result.score >= 50 ? '#f59e0b' : '#f72585', letterSpacing: 3 }}>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: 48, fontWeight: 900, color: result.score >= 70 ? '#00f5ff' : result.score >= 50 ? '#f59e0b' : '#f72585', letterSpacing: 3 }}>
               {Math.round(result.score)}%
             </div>
-            <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, color: '#4a5070', marginTop: 6, letterSpacing: 2 }}>{result.correct} / {result.total} CORRECT</div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-muted)', marginTop: 6, letterSpacing: 2 }}>{result.correct} / {result.total} CORRECT</div>
           </div>
 
           {result.graded.map((q, i) => (
             <div key={i} style={{ padding: '14px 16px', background: q.isCorrect ? 'rgba(6,214,160,0.04)' : 'rgba(247,37,133,0.04)', border: `1px solid ${q.isCorrect ? 'rgba(6,214,160,0.2)' : 'rgba(247,37,133,0.2)'}` }}>
               <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginBottom: q.isCorrect ? 0 : 10 }}>
-                <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, color: q.isCorrect ? '#06d6a0' : '#f72585', letterSpacing: 1, flexShrink: 0 }}>{q.isCorrect ? 'OK' : 'ERR'}</span>
-                <span style={{ fontFamily: 'Rajdhani, sans-serif', color: '#c8d0e0', fontSize: 13 }}>{q.question}</span>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: q.isCorrect ? '#06d6a0' : '#f72585', letterSpacing: 1, flexShrink: 0 }}>{q.isCorrect ? 'OK' : 'ERR'}</span>
+                <span style={{ fontFamily: 'var(--font-body)', color: 'var(--text-secondary)', fontSize: 13 }}>{q.question}</span>
               </div>
               {!q.isCorrect && (
                 <div style={{ padding: '8px 12px', background: 'rgba(0,245,255,0.04)', marginTop: 4 }}>
-                  <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, color: '#00f5ff', letterSpacing: 1, marginBottom: 4 }}>CORRECT: {q.correctAnswer}</div>
-                  {q.explanation && <div style={{ fontFamily: 'Rajdhani, sans-serif', fontSize: 12, color: '#4a5070' }}>{q.explanation}</div>}
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--accent)', letterSpacing: 1, marginBottom: 4 }}>CORRECT: {q.correctAnswer}</div>
+                  {q.explanation && <div style={{ fontFamily: 'var(--font-body)', fontSize: 12, color: 'var(--text-muted)' }}>{q.explanation}</div>}
                 </div>
               )}
             </div>
@@ -589,8 +589,8 @@ function ActionCard({ emoji, title, desc, color, onClick }) {
       }}
     >
       <div style={{ fontSize: 24, marginBottom: 10 }}>{emoji}</div>
-      <div style={{ fontFamily: 'Orbitron, sans-serif', fontSize: 10, color: hovered ? '#dde4f0' : '#8a94b0', marginBottom: 6, letterSpacing: 1, transition: 'color 0.2s' }}>{title.toUpperCase()}</div>
-      <div style={{ fontFamily: 'Rajdhani, sans-serif', color: '#4a5070', fontSize: 12, lineHeight: 1.5 }}>{desc}</div>
+      <div style={{ fontFamily: 'var(--font-display)', fontSize: 10, color: hovered ? '#dde4f0' : '#8a94b0', marginBottom: 6, letterSpacing: 1, transition: 'color 0.2s' }}>{title.toUpperCase()}</div>
+      <div style={{ fontFamily: 'var(--font-body)', color: 'var(--text-muted)', fontSize: 12, lineHeight: 1.5 }}>{desc}</div>
     </motion.div>
   )
 }
@@ -635,7 +635,7 @@ export default function CoursePage() {
     return (
       <div className="app-layout">
         <Sidebar activeTab="courses" onTabChange={() => navigate('/dashboard')} />
-        <main className="main-content" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#020209' }}>
+        <main className="main-content" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-base)' }}>
           <AILoading message="LOADING COURSE DATA..." />
         </main>
       </div>
@@ -648,11 +648,11 @@ export default function CoursePage() {
     <div className="app-layout">
       <Sidebar activeTab="courses" onTabChange={() => navigate('/dashboard')} />
 
-      <main className="main-content" style={{ padding: '28px 32px', background: '#020209', minHeight: '100vh' }}>
+      <main className="main-content" style={{ padding: '28px 32px', background: 'var(--bg-base)', minHeight: '100vh' }}>
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
           {/* Back */}
           <button onClick={() => navigate('/dashboard')}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', color: '#4a5070', fontFamily: 'JetBrains Mono, monospace', fontSize: 10, letterSpacing: 2, marginBottom: 24, padding: 0, transition: 'color 0.2s' }}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: 2, marginBottom: 24, padding: 0, transition: 'color 0.2s' }}
             onMouseEnter={e => e.currentTarget.style.color = '#00f5ff'}
             onMouseLeave={e => e.currentTarget.style.color = '#4a5070'}
           >
@@ -661,21 +661,21 @@ export default function CoursePage() {
 
           {/* Course header panel */}
           <HudPanel style={{ padding: '22px 24px', marginBottom: 24 }}>
-            <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 9, color: '#4a5070', letterSpacing: 3, marginBottom: 8 }}>// COURSE BRIEFING</div>
-            <h1 style={{ fontFamily: 'Orbitron, sans-serif', fontSize: 'clamp(13px, 1.8vw, 18px)', color: '#dde4f0', marginBottom: 12, lineHeight: 1.3, letterSpacing: 1 }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--text-muted)', letterSpacing: 3, marginBottom: 8 }}>// COURSE BRIEFING</div>
+            <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(13px, 1.8vw, 18px)', color: 'var(--text-primary)', marginBottom: 12, lineHeight: 1.3, letterSpacing: 1 }}>
               {course.title}
             </h1>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
-              <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 9, color: '#00f5ff', background: 'rgba(0,245,255,0.08)', border: '1px solid rgba(0,245,255,0.15)', padding: '3px 9px', letterSpacing: 1 }}>{course.video_count} VIDEOS</span>
-              {analysis.difficulty && <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 9, color: '#7b2fff', background: 'rgba(123,47,255,0.08)', border: '1px solid rgba(123,47,255,0.2)', padding: '3px 9px', letterSpacing: 1 }}>{analysis.difficulty.toUpperCase()}</span>}
-              {analysis.estimatedHours && <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 9, color: '#06d6a0', background: 'rgba(6,214,160,0.08)', border: '1px solid rgba(6,214,160,0.2)', padding: '3px 9px', letterSpacing: 1 }}>~{analysis.estimatedHours}H</span>}
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--accent)', background: 'rgba(0,245,255,0.08)', border: '1px solid rgba(0,245,255,0.15)', padding: '3px 9px', letterSpacing: 1 }}>{course.video_count} VIDEOS</span>
+              {analysis.difficulty && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--accent-violet)', background: 'rgba(123,47,255,0.08)', border: '1px solid rgba(123,47,255,0.2)', padding: '3px 9px', letterSpacing: 1 }}>{analysis.difficulty.toUpperCase()}</span>}
+              {analysis.estimatedHours && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--accent-success)', background: 'rgba(6,214,160,0.08)', border: '1px solid rgba(6,214,160,0.2)', padding: '3px 9px', letterSpacing: 1 }}>~{analysis.estimatedHours}H</span>}
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'JetBrains Mono, monospace', fontSize: 9, color: '#4a5070', marginBottom: 6, letterSpacing: 1 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--text-muted)', marginBottom: 6, letterSpacing: 1 }}>
               <span>PROGRESS: {watchedCount}/{course.video_count} WATCHED</span>
-              <span style={{ color: '#00f5ff' }}>{progressPct}%</span>
+              <span style={{ color: 'var(--accent)' }}>{progressPct}%</span>
             </div>
             <div style={{ height: 2, background: 'rgba(255,255,255,0.05)' }}>
-              <motion.div initial={{ width: 0 }} animate={{ width: `${progressPct}%` }} transition={{ duration: 0.7 }} style={{ height: '100%', background: 'linear-gradient(90deg, #00f5ff, #7b2fff)' }} />
+              <motion.div initial={{ width: 0 }} animate={{ width: `${progressPct}%` }} transition={{ duration: 0.7 }} style={{ height: '100%', background: 'linear-gradient(90deg, var(--accent), var(--accent-violet))' }} />
             </div>
           </HudPanel>
         </motion.div>
@@ -689,13 +689,13 @@ export default function CoursePage() {
             {/* Course overview */}
             {analysis.summary && (
               <HudPanel style={{ padding: '20px 22px' }} accentColor="#06d6a0">
-                <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 9, color: '#4a5070', letterSpacing: 3, marginBottom: 10 }}>COURSE_OVERVIEW</div>
-                <div style={{ fontFamily: 'Rajdhani, sans-serif', color: '#6a7090', fontSize: 14, lineHeight: 1.7 }}>{analysis.summary}</div>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--text-muted)', letterSpacing: 3, marginBottom: 10 }}>COURSE_OVERVIEW</div>
+                <div style={{ fontFamily: 'var(--font-body)', color: 'var(--text-muted)', fontSize: 14, lineHeight: 1.7 }}>{analysis.summary}</div>
                 {analysis.prerequisites?.length > 0 && (
                   <div style={{ marginTop: 14 }}>
-                    <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 9, color: '#4a5070', letterSpacing: 2, marginBottom: 8 }}>PREREQUISITES</div>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--text-muted)', letterSpacing: 2, marginBottom: 8 }}>PREREQUISITES</div>
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                      {analysis.prerequisites.map(p => <span key={p} style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 9, color: '#f72585', background: 'rgba(247,37,133,0.08)', border: '1px solid rgba(247,37,133,0.2)', padding: '2px 8px', letterSpacing: 1 }}>{p}</span>)}
+                      {analysis.prerequisites.map(p => <span key={p} style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--accent-pink)', background: 'rgba(247,37,133,0.08)', border: '1px solid rgba(247,37,133,0.2)', padding: '2px 8px', letterSpacing: 1 }}>{p}</span>)}
                     </div>
                   </div>
                 )}
@@ -704,7 +704,7 @@ export default function CoursePage() {
 
             {/* AI Tools */}
             <div>
-              <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 9, color: '#4a5070', letterSpacing: 3, marginBottom: 14 }}>AI_STUDY_TOOLS</div>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--text-muted)', letterSpacing: 3, marginBottom: 14 }}>AI_STUDY_TOOLS</div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: 12 }}>
                 <ActionCard emoji="📋" title="Summarize Video"  desc="Structured AI summary of any video"          color="#00f5ff" onClick={() => open('summarize')} />
                 <ActionCard emoji="🎓" title="Teach Me"         desc="Socratic method explanation by Nyra"         color="#7b2fff" onClick={() => open('teach')} />
@@ -719,9 +719,9 @@ export default function CoursePage() {
             {/* Topics */}
             {analysis.topics?.length > 0 && (
               <HudPanel style={{ padding: '18px 20px' }}>
-                <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 9, color: '#4a5070', letterSpacing: 3, marginBottom: 12 }}>TOPICS_COVERED</div>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--text-muted)', letterSpacing: 3, marginBottom: 12 }}>TOPICS_COVERED</div>
                 <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
-                  {analysis.topics.map(t => <span key={t} style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 9, color: '#00f5ff', background: 'rgba(0,245,255,0.06)', border: '1px solid rgba(0,245,255,0.12)', padding: '3px 9px', letterSpacing: 1 }}>{t}</span>)}
+                  {analysis.topics.map(t => <span key={t} style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--accent)', background: 'rgba(0,245,255,0.06)', border: '1px solid var(--border)', padding: '3px 9px', letterSpacing: 1 }}>{t}</span>)}
                 </div>
               </HudPanel>
             )}
@@ -729,7 +729,7 @@ export default function CoursePage() {
 
           {/* Right: Video list */}
           <HudPanel style={{ padding: '18px' }} accentColor="#06d6a0">
-            <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 9, color: '#4a5070', letterSpacing: 3, marginBottom: 14 }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--text-muted)', letterSpacing: 3, marginBottom: 14 }}>
               VIDEO_INDEX ({course.video_count})
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 560, overflowY: 'auto' }}>
@@ -752,22 +752,22 @@ export default function CoursePage() {
                         style={{ width: 20, height: 20, border: `1.5px solid ${watched ? '#00f5ff' : 'rgba(255,255,255,0.15)'}`, background: watched ? 'rgba(0,245,255,0.2)' : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, padding: 0, transition: 'all 0.2s' }}
                       >
                         {watched
-                          ? <HiOutlineCheck size={10} style={{ color: '#00f5ff' }} />
-                          : <HiOutlinePlay size={9} style={{ color: '#4a5070' }} />}
+                          ? <HiOutlineCheck size={10} style={{ color: 'var(--accent)' }} />
+                          : <HiOutlinePlay size={9} style={{ color: 'var(--text-muted)' }} />}
                       </button>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontFamily: 'Rajdhani, sans-serif', fontSize: 12, color: watched ? '#c8d0e0' : '#6a7090', lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 9, color: '#4a5070', marginRight: 6 }}>{String(i+1).padStart(2,'0')}</span>
+                        <div style={{ fontFamily: 'var(--font-body)', fontSize: 12, color: watched ? '#c8d0e0' : '#6a7090', lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--text-muted)', marginRight: 6 }}>{String(i+1).padStart(2,'0')}</span>
                           {video.title}
                         </div>
                       </div>
-                      {expanded ? <HiOutlineChevronDown size={11} style={{ color: '#4a5070', flexShrink: 0 }} /> : <HiOutlineChevronRight size={11} style={{ color: '#4a5070', flexShrink: 0 }} />}
+                      {expanded ? <HiOutlineChevronDown size={11} style={{ color: 'var(--text-muted)', flexShrink: 0 }} /> : <HiOutlineChevronRight size={11} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />}
                     </div>
                     <AnimatePresence>
                       {expanded && (
                         <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} style={{ overflow: 'hidden', paddingLeft: 38 }}>
                           <a href={`https://youtube.com/watch?v=${video.youtube_id}`} target="_blank" rel="noreferrer"
-                            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 12px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', fontFamily: 'JetBrains Mono, monospace', fontSize: 9, color: '#4a5070', textDecoration: 'none', letterSpacing: 1, margin: '6px 0', transition: 'all 0.2s' }}
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 12px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--text-muted)', textDecoration: 'none', letterSpacing: 1, margin: '6px 0', transition: 'all 0.2s' }}
                             onMouseEnter={e => { e.currentTarget.style.color = '#00f5ff'; e.currentTarget.style.borderColor = 'rgba(0,245,255,0.25)' }}
                             onMouseLeave={e => { e.currentTarget.style.color = '#4a5070'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)' }}
                           >

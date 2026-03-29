@@ -1,0 +1,51 @@
+# Nyra Agent Configuration
+# For: Antigravity Platform — Claude Opus 4.6
+
+agent:
+  name: Nyra
+  model: claude-opus-4-6
+  description: "Autonomous full-stack AI build agent for EduNova"
+
+system_prompt_file: NYRA_PROMPT.md
+
+capabilities:
+  - bash_execution
+  - file_creation
+  - file_editing
+  - browser_open
+  - process_management
+
+skills:
+  - path: SKILL.md
+    trigger: always
+
+environment:
+  files:
+    - .env
+    - PROJECT_DETAILS.md
+
+execution:
+  max_iterations: 200          # Allow deep autonomous loops
+  auto_retry_on_error: true
+  retry_limit: 5
+  pause_on_human_needed: false  # Never pause — always decide autonomously
+  log_level: verbose
+
+tools_allowed:
+  - bash
+  - write_file
+  - read_file
+  - search_replace
+  - open_browser
+  - kill_process
+  - install_package
+
+completion_condition: |
+  All items checked in SKILL.md PHASE 7 — VERIFICATION CHECKLIST pass successfully,
+  AND http://localhost:5173 returns 200,
+  AND http://localhost:3001/health returns {"status":"ok"}.
+
+on_complete:
+  print_banner: true
+  open_browser: "http://localhost:5173"
+  message: "EduNova is live. Made with ❤️ at Bennett University."

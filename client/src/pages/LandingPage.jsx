@@ -1,658 +1,409 @@
-import { useEffect, useState, useRef, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion'
+import { useRef, useState } from 'react'
+import { useNavigate, Link } from 'react-router-dom'
+import { motion, useScroll, useTransform, useSpring, AnimatePresence } from 'framer-motion'
 import useAuthStore from '../store/useAuthStore'
+import { useTheme } from '../context/ThemeContext'
+import Nova from '../components/Nova'
+import {
+  HiOutlineAcademicCap, HiOutlineChartBar, HiOutlineLightBulb,
+  HiOutlineChatBubbleLeft, HiOutlineArrowRight, HiOutlineSparkles,
+  HiOutlineCheckCircle, HiOutlineBookOpen, HiOutlineMapPin,
+} from 'react-icons/hi2'
+import { HiOutlineMoon, HiOutlineSun } from 'react-icons/hi'
 
-// ── Text Scramble Hook ────────────────────────────────────────────────────
-const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&'
-function useTextScramble(target, duration = 1200) {
-  const [text, setText] = useState(() => Array(target.length).fill('?').join(''))
-  const [done, setDone] = useState(false)
-  useEffect(() => {
-    let frame = 0
-    const totalFrames = Math.floor(duration / 16)
-    const interval = setInterval(() => {
-      frame++
-      const progress = frame / totalFrames
-      const revealed = Math.floor(progress * target.length)
-      let result = ''
-      for (let i = 0; i < target.length; i++) {
-        if (i < revealed)      result += target[i]
-        else if (target[i] === ' ') result += ' '
-        else result += CHARS[Math.floor(Math.random() * CHARS.length)]
-      }
-      setText(result)
-      if (frame >= totalFrames) { setText(target); setDone(true); clearInterval(interval) }
-    }, 16)
-    return () => clearInterval(interval)
-  }, [target, duration])
-  return { text, done }
-}
+// ── Nav Bar ────────────────────────────────────────────────────────────────
+function NavBar({ onLogin, onSignup }) {
+  const { theme, toggleTheme } = useTheme()
+  const [scrolled, setScrolled] = useState(false)
 
-// ── Stars background ──────────────────────────────────────────────────────
-function StarField({ count = 200 }) {
-  const stars = useRef(
-    Array.from({ length: count }, () => ({
-      x: Math.random() * 100,
-      y: Math.random() * 100,
-      r: Math.random() * 1.5 + 0.3,
-      opacity: Math.random() * 0.7 + 0.1,
-      dur: Math.random() * 4 + 2,
-    }))
-  )
-  return (
-    <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }}>
-      {stars.current.map((s, i) => (
-        <circle key={i} cx={`${s.x}%`} cy={`${s.y}%`} r={s.r} fill="white">
-          <animate attributeName="opacity" values={`${s.opacity};${s.opacity * 0.2};${s.opacity}`} dur={`${s.dur}s`} repeatCount="indefinite" />
-        </circle>
-      ))}
-    </svg>
-  )
-}
-
-// ── Particle Orb Canvas ───────────────────────────────────────────────────
-function ParticleOrb({ progressRef }) {
-  const canvasRef = useRef(null)
-  const stateRef  = useRef({ particles: [], rotation: 0, animId: null })
-
-  useEffect(() => {
-    const N = 500
-    const R = 130
-    const phi = Math.PI * (3 - Math.sqrt(5))
-
-    const particles = Array.from({ length: N }, (_, i) => {
-      const y   = 1 - (i / (N - 1)) * 2
-      const r   = Math.sqrt(1 - y * y)
-      const ang = phi * i
-      const hue = i % 3 === 0 ? 185 : i % 3 === 1 ? 270 : 320
-      const spread = 280
-
-      return {
-        // sphere target
-        tx: Math.cos(ang) * r * R,
-        ty: y * R,
-        tz: Math.sin(ang) * r * R,
-        // scattered origin
-        sx: (Math.random() - 0.5) * spread,
-        sy: (Math.random() - 0.5) * spread,
-        sz: (Math.random() - 0.5) * spread,
-        hue,
-        size: Math.random() * 1.8 + 0.4,
-        speed: 0.6 + Math.random() * 0.4,
-      }
-    })
-
-    stateRef.current.particles = particles
-
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const ctx = canvas.getContext('2d')
-
-    const draw = () => {
-      const t    = progressRef.current
-      const W    = canvas.width
-      const H    = canvas.height
-      const cx   = W / 2
-      const cy   = H / 2
-      const rot  = stateRef.current.rotation
-      const cosR = Math.cos(rot)
-      const sinR = Math.sin(rot)
-
-      ctx.clearRect(0, 0, W, H)
-
-      // Central glow when assembled
-      if (t > 0.3) {
-        const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 1.5)
-        g.addColorStop(0,   `rgba(0,245,255,${0.04 * t})`)
-        g.addColorStop(0.5, `rgba(123,47,255,${0.03 * t})`)
-        g.addColorStop(1,   'transparent')
-        ctx.fillStyle = g
-        ctx.fillRect(0, 0, W, H)
-      }
-
-      // Project particles
-      const projected = particles.map(p => {
-        const eased = Math.pow(t * p.speed, 0.6)
-        const px = p.sx + (p.tx - p.sx) * Math.min(1, eased)
-        const py = p.sy + (p.ty - p.sy) * Math.min(1, eased)
-        const pz = p.sz + (p.tz - p.sz) * Math.min(1, eased)
-
-        // Rotate Y
-        const rx =  px * cosR + pz * sinR
-        const ry =  py
-        const rz = -px * sinR + pz * cosR
-
-        const fov   = 450
-        const scale = fov / (fov + rz + 200)
-        return {
-          sx: cx + rx * scale,
-          sy: cy + ry * scale,
-          rz,
-          scale,
-          p,
-          alpha: Math.max(0, Math.min(1, scale * 1.4)),
-        }
-      }).sort((a, b) => a.rz - b.rz)
-
-      // Draw connections (only when >60% assembled)
-      if (t > 0.6) {
-        const linkAlpha = (t - 0.6) * 2.5 * 0.08
-        ctx.lineWidth = 0.4
-        for (let i = 0; i < projected.length; i += 4) {
-          for (let j = i + 1; j < Math.min(i + 12, projected.length); j++) {
-            const a = projected[i], b = projected[j]
-            const dx = a.sx - b.sx, dy = a.sy - b.sy
-            const dist = Math.sqrt(dx*dx + dy*dy)
-            if (dist < 40) {
-              ctx.beginPath()
-              ctx.moveTo(a.sx, a.sy)
-              ctx.lineTo(b.sx, b.sy)
-              ctx.strokeStyle = `rgba(0,245,255,${linkAlpha * (1 - dist / 40)})`
-              ctx.stroke()
-            }
-          }
-        }
-      }
-
-      // Draw particles
-      projected.forEach(({ sx, sy, alpha, scale, p }) => {
-        const size = p.size * scale * (0.5 + t * 0.8)
-        if (size < 0.2) return
-
-        // Particle core
-        ctx.beginPath()
-        ctx.arc(sx, sy, size, 0, Math.PI * 2)
-        ctx.fillStyle = `hsla(${p.hue},100%,72%,${alpha * (0.3 + t * 0.7)})`
-        ctx.fill()
-
-        // Glow halo (only assembled particles)
-        if (t > 0.4 && size > 0.8) {
-          const glow = ctx.createRadialGradient(sx, sy, 0, sx, sy, size * 4)
-          glow.addColorStop(0, `hsla(${p.hue},100%,70%,${alpha * 0.25 * t})`)
-          glow.addColorStop(1, 'transparent')
-          ctx.fillStyle = glow
-          ctx.beginPath()
-          ctx.arc(sx, sy, size * 4, 0, Math.PI * 2)
-          ctx.fill()
-        }
-      })
-
-      stateRef.current.rotation += 0.004
-      stateRef.current.animId = requestAnimationFrame(draw)
-    }
-
-    stateRef.current.animId = requestAnimationFrame(draw)
-    return () => cancelAnimationFrame(stateRef.current.animId)
-  }, [])
+  if (typeof window !== 'undefined') {
+    window.onscroll = () => setScrolled(window.scrollY > 20)
+  }
 
   return (
-    <canvas
-      ref={canvasRef}
-      width={400}
-      height={400}
-      style={{ display: 'block', maxWidth: '100%' }}
-    />
+    <motion.nav
+      initial={{ opacity: 0, y: -16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+      style={{
+        position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
+        padding: '0 40px',
+        height: 60,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        background: scrolled ? 'var(--bg-surface)' : 'transparent',
+        borderBottom: scrolled ? '1px solid var(--border)' : '1px solid transparent',
+        backdropFilter: scrolled ? 'blur(20px)' : 'none',
+        transition: 'all 0.3s ease',
+      }}
+    >
+      {/* Logo */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }} onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+        <svg viewBox="0 0 160 176" fill="none" style={{ width: 28, height: 31 }}>
+          <path d="M 32 58 Q 30 28 80 26 Q 130 28 128 58 L 128 118 Q 128 142 108 147 L 80 151 L 52 147 Q 32 142 32 118 Z" fill="#0D1221" stroke="rgba(61,142,240,0.6)" strokeWidth="1.5"/>
+          <ellipse cx="60" cy="88" rx="14" ry="9" fill="rgba(8,11,20,0.9)" stroke="rgba(61,142,240,0.5)" strokeWidth="1"/>
+          <ellipse cx="60" cy="88" rx="7" ry="5" fill="#3D8EF0" opacity="0.8"/>
+          <ellipse cx="100" cy="88" rx="14" ry="9" fill="rgba(8,11,20,0.9)" stroke="rgba(61,142,240,0.5)" strokeWidth="1"/>
+          <ellipse cx="100" cy="88" rx="7" ry="5" fill="#3D8EF0" opacity="0.8"/>
+        </svg>
+        <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16, color: 'var(--text-primary)', letterSpacing: '-0.3px' }}>
+          Edunova
+        </span>
+      </div>
+
+      {/* Actions */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <button onClick={toggleTheme} style={{ background: 'var(--bg-overlay)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', padding: '6px 10px', cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', transition: 'all 0.15s' }}>
+          {theme === 'dark' ? <HiOutlineSun size={15} /> : <HiOutlineMoon size={15} />}
+        </button>
+        <button onClick={onLogin} className="btn-ghost" style={{ padding: '7px 16px', fontSize: 13 }}>
+          Sign in
+        </button>
+        <button onClick={onSignup} className="btn-primary" style={{ padding: '7px 18px', fontSize: 13 }}>
+          Get started
+        </button>
+      </div>
+    </motion.nav>
   )
 }
 
-// ── Feature slide data ─────────────────────────────────────────────────────
-const SLIDES = [
-  { icon: '🎬', label: 'ANALYZE', title: 'Any YouTube Course', desc: 'Paste a playlist link. Nyra fetches transcripts, runs deep AI analysis, and maps the entire course in seconds.' },
-  { icon: '🧠', label: 'UNDERSTAND', title: 'With Socratic Teaching', desc: 'Nyra uses GPT-4o to explain concepts step by step, provide analogies, and check your comprehension.' },
-  { icon: '🗺️', label: 'VISUALIZE', title: 'Interactive Mind Maps', desc: 'Drag-and-drop neural graphs of every topic. Zoom, explore, and see how concepts connect.' },
-  { icon: '📝', label: 'TEST', title: 'AI-Generated Exams', desc: 'MCQs, True/False, and short answers with instant grading, explanations, and XP rewards.' },
-  { icon: '💬', label: 'CHAT', title: 'With Your Course AI', desc: 'Context-aware chatbot that knows every video in your course. Ask anything, get precise answers.' },
-]
+// ── Feature Card ───────────────────────────────────────────────────────────
+function FeatureCard({ icon: Icon, title, desc, color, delay = 0 }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 24 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.4, delay }}
+      whileHover={{ y: -4, boxShadow: 'var(--shadow-md)' }}
+      style={{
+        background: 'var(--bg-surface)',
+        border: '1px solid var(--border)',
+        borderRadius: 'var(--radius-lg)',
+        padding: '24px',
+        cursor: 'default',
+        transition: 'border-color 0.2s',
+        borderTop: `3px solid ${color}`,
+      }}
+      onMouseEnter={e => e.currentTarget.style.borderTopColor = color}
+    >
+      <div style={{ width: 40, height: 40, borderRadius: 'var(--radius-md)', background: `${color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
+        <Icon size={20} style={{ color }} />
+      </div>
+      <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 15, color: 'var(--text-primary)', marginBottom: 8 }}>
+        {title}
+      </div>
+      <div style={{ fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.65 }}>
+        {desc}
+      </div>
+    </motion.div>
+  )
+}
 
-const credits = [
-  { role: 'Backend', name: 'Afraaz Khan',    id: 'S24CSEU2051' },
-  { role: 'Backend', name: 'Aayush Patel',   id: 'S24CSEU2032' },
-  { role: 'Frontend', name: 'Aarush Singhal', id: 'S24CSEU2091' },
-  { role: 'Frontend', name: 'Piyush Kumar',   id: 'S24CSEU2037' },
-]
+// ── Step Card ──────────────────────────────────────────────────────────────
+function StepCard({ num, title, desc, delay = 0 }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: -20 }}
+      whileInView={{ opacity: 1, x: 0 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.4, delay }}
+      style={{ display: 'flex', gap: 18, alignItems: 'flex-start' }}
+    >
+      <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--accent-dim)', border: '1px solid var(--border-active)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13, color: 'var(--accent)', flexShrink: 0 }}>
+        {num}
+      </div>
+      <div>
+        <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 15, color: 'var(--text-primary)', marginBottom: 5 }}>{title}</div>
+        <div style={{ fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{desc}</div>
+      </div>
+    </motion.div>
+  )
+}
 
-// ── Landing Page ──────────────────────────────────────────────────────────
+// ── Main Landing Page ──────────────────────────────────────────────────────
 export default function LandingPage() {
   const navigate = useNavigate()
   const { user } = useAuthStore()
+  const heroRef   = useRef(null)
+  const novaRef   = useRef(null)
 
-  // Redirect if logged in
-  useEffect(() => { if (user) navigate('/dashboard') }, [user])
+  // Scroll-driven Nova assembly
+  const { scrollYProgress } = useScroll({ target: novaRef, offset: ['start end', 'center center'] })
+  const assemblyRaw = useTransform(scrollYProgress, [0, 1], [0, 1])
+  const assembly    = useSpring(assemblyRaw, { stiffness: 70, damping: 18 })
+  const [assemblyVal, setAssemblyVal] = useState(0)
 
-  // Orb scroll progress
-  const orbProgressRef   = useRef(0)
-  const stickyWrapRef    = useRef(null)
-  const [orbProgress, setOrbProgress] = useState(0)
-  const [slideIndex,  setSlideIndex]  = useState(0)
+  assembly.on('change', v => setAssemblyVal(v))
 
-  // Title scramble
-  const { text: title } = useTextScramble('EDUNOVA', 1400)
+  // Disassemble on scroll back up
+  const { scrollYProgress: heroProgress } = useScroll({ target: heroRef, offset: ['start start', 'end start'] })
+  const heroAssembly = useSpring(useTransform(heroProgress, [0, 0.6], [1, 0]), { stiffness: 60, damping: 20 })
+  const [heroVal, setHeroVal] = useState(1)
+  heroAssembly.on('change', v => setHeroVal(Math.max(0, v)))
 
-  // Scroll handler — drives orb assembly
-  useEffect(() => {
-    const onScroll = () => {
-      const el = stickyWrapRef.current
-      if (!el) return
-      const rect    = el.getBoundingClientRect()
-      const scrolled = -rect.top
-      const total    = rect.height - window.innerHeight
-      const prog     = Math.max(0, Math.min(1, scrolled / total))
-      orbProgressRef.current = prog
-      setOrbProgress(prog)
-      // Which slide to show (0-4)
-      setSlideIndex(Math.min(SLIDES.length - 1, Math.floor(prog * SLIDES.length)))
-    }
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [])
+  const onLogin  = () => user ? navigate('/dashboard') : navigate('/login')
+  const onSignup = () => user ? navigate('/dashboard') : navigate('/signup')
+
+  const features = [
+    { icon: HiOutlineMapPin,          title: 'Mind Maps',        desc: 'Instantly visualize any course as an interactive concept map.',         color: 'var(--accent)',         delay: 0    },
+    { icon: HiOutlineLightBulb,       title: 'Smart Summaries',  desc: 'Get concise AI-generated summaries of every lecture video.',             color: 'var(--accent-violet)',  delay: 0.05 },
+    { icon: HiOutlineAcademicCap,     title: 'Adaptive Exams',   desc: 'Generate personalized quizzes based on your actual course content.',     color: 'var(--accent-success)', delay: 0.1  },
+    { icon: HiOutlineChatBubbleLeft,  title: 'Ask Nova',         desc: 'Chat with your AI tutor — explain topics, answer questions, go deeper.',  color: 'var(--accent-warning)', delay: 0.15 },
+    { icon: HiOutlineChartBar,        title: 'Progress Tracking', desc: 'Track completion, XP, streaks and quiz scores across all courses.',     color: 'var(--accent-pink)',    delay: 0.2  },
+    { icon: HiOutlineBookOpen,        title: 'Gap Analysis',     desc: 'Discover knowledge gaps and get a recommended study path.',              color: 'var(--accent)',         delay: 0.25 },
+  ]
 
   return (
-    <div style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
+    <div style={{ background: 'var(--bg-base)', minHeight: '100vh' }}>
+      <NavBar onLogin={onLogin} onSignup={onSignup} />
 
-      {/* ── HERO SECTION (100vh) ──────────────────────────────────── */}
-      <section
-        style={{
-          height: '100vh',
-          position: 'relative',
-          overflow: 'hidden',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        {/* Deep space gradient */}
-        <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 80% 60% at 50% 40%, #0a0020 0%, #020209 100%)' }} />
+      {/* ── HERO ── */}
+      <section ref={heroRef} style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', padding: '80px 40px 60px', position: 'relative', overflow: 'hidden' }}>
 
-        {/* Cyber grid */}
-        <div className="cyber-grid" style={{ position: 'absolute', inset: 0, opacity: 0.5 }} />
+        {/* Subtle grid background */}
+        <div className="cyber-grid" style={{ position: 'absolute', inset: 0, opacity: 0.4, pointerEvents: 'none' }} />
 
-        {/* Scanline */}
-        <div className="scanline-overlay" style={{ position: 'absolute', inset: 0, overflow: 'hidden' }} />
+        {/* Ambient glow blobs */}
+        <div style={{ position: 'absolute', top: '20%', left: '25%', width: 500, height: 500, borderRadius: '50%', background: 'radial-gradient(circle, var(--accent-v-dim) 0%, transparent 65%)', pointerEvents: 'none', filter: 'blur(40px)' }} />
+        <div style={{ position: 'absolute', bottom: '10%', right: '20%', width: 300, height: 300, borderRadius: '50%', background: 'radial-gradient(circle, var(--accent-dim) 0%, transparent 65%)', pointerEvents: 'none', filter: 'blur(30px)' }} />
 
-        {/* Stars */}
-        <StarField count={180} />
+        <div style={{ maxWidth: 1200, margin: '0 auto', width: '100%', display: 'flex', alignItems: 'center', gap: 60, justifyContent: 'space-between', flexWrap: 'wrap' }}>
 
-        {/* Ambient orbs */}
-        <div style={{ position: 'absolute', top: '25%', left: '20%', width: 500, height: 500, borderRadius: '50%', background: 'radial-gradient(circle, rgba(0,245,255,0.05) 0%, transparent 70%)', animation: 'float 6s ease-in-out infinite' }} />
-        <div style={{ position: 'absolute', bottom: '20%', right: '15%', width: 600, height: 600, borderRadius: '50%', background: 'radial-gradient(circle, rgba(123,47,255,0.06) 0%, transparent 70%)', animation: 'float 8s ease-in-out 2s infinite' }} />
-
-        {/* ── MAIN HERO CONTENT ── */}
-        <div style={{ position: 'relative', zIndex: 10, textAlign: 'center', padding: '0 20px', maxWidth: 760 }}>
-
-          {/* Status chip */}
-          <motion.div
-            initial={{ opacity: 0, y: -16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2, duration: 0.6 }}
-            style={{
-              display: 'inline-flex', alignItems: 'center', gap: 8,
-              background: 'rgba(0,245,255,0.06)',
-              border: '1px solid rgba(0,245,255,0.2)',
-              borderRadius: 40, padding: '6px 18px',
-              fontSize: 11, color: 'var(--accent-cyan)',
-              fontFamily: 'var(--font-display)', letterSpacing: 2,
-              marginBottom: 40,
-            }}
-          >
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent-cyan)', display: 'inline-block', animation: 'glowPulse 1.5s ease-in-out infinite' }} />
-            GPT-4o POWERED · BENNETT UNIVERSITY
-          </motion.div>
-
-          {/* EDUNOVA — scramble effect */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.85 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.1, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-          >
-            <h1
-              className="cursor-blink"
-              style={{
-                fontFamily: 'var(--font-display)',
-                fontWeight: 900,
-                fontSize: 'clamp(52px, 12vw, 120px)',
-                letterSpacing: '-1px',
-                lineHeight: 1,
-                marginBottom: 16,
-                background: 'linear-gradient(135deg, #ffffff 0%, var(--accent-cyan) 40%, var(--accent-violet) 80%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-                filter: 'drop-shadow(0 0 40px rgba(0,245,255,0.3))',
-                animation: 'flicker 8s ease-in-out infinite',
-              }}
+          {/* Left: copy */}
+          <div style={{ flex: '1 1 480px', maxWidth: 560 }}>
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1, duration: 0.4 }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: 'var(--accent-dim)', border: '1px solid var(--border-active)', borderRadius: 20, padding: '5px 14px', marginBottom: 24 }}
             >
-              {title}
-            </h1>
-          </motion.div>
+              <HiOutlineSparkles size={13} style={{ color: 'var(--accent)' }} />
+              <span style={{ fontFamily: 'var(--font-body)', fontSize: 12, color: 'var(--accent)', fontWeight: 500 }}>
+                Powered by Llama 3.3 · Free to use
+              </span>
+            </motion.div>
 
-          {/* Tagline */}
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.9, duration: 0.7 }}
-            style={{
-              fontFamily: 'var(--font-display)',
-              fontSize: 'clamp(13px, 2vw, 18px)',
-              fontWeight: 500,
-              letterSpacing: 6,
-              color: 'var(--text-muted)',
-              marginBottom: 56,
-              textTransform: 'uppercase',
-            }}
-          >
-            THE FUTURE OF LEARNING
-          </motion.p>
-
-          {/* ENTER button */}
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1.1, duration: 0.6 }}
-          >
-            <motion.button
-              onClick={() => navigate('/signup')}
-              whileHover={{ scale: 1.04 }}
-              whileTap={{ scale: 0.97 }}
+            <motion.h1
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.18, duration: 0.45 }}
               style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 16,
-                padding: '18px 56px',
-                background: 'transparent',
-                border: '1px solid rgba(0,245,255,0.5)',
-                borderRadius: 4,
-                cursor: 'pointer',
                 fontFamily: 'var(--font-display)',
                 fontWeight: 700,
-                fontSize: 14,
-                letterSpacing: 8,
-                color: 'var(--accent-cyan)',
-                textTransform: 'uppercase',
-                position: 'relative',
-                overflow: 'hidden',
-                transition: 'all 0.3s',
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.background = 'rgba(0,245,255,0.07)'
-                e.currentTarget.style.boxShadow = '0 0 40px rgba(0,245,255,0.2), 0 0 80px rgba(0,245,255,0.08), inset 0 0 40px rgba(0,245,255,0.04)'
-                e.currentTarget.style.borderColor = 'var(--accent-cyan)'
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.background = 'transparent'
-                e.currentTarget.style.boxShadow = 'none'
-                e.currentTarget.style.borderColor = 'rgba(0,245,255,0.5)'
+                fontSize: 'clamp(36px, 5vw, 58px)',
+                lineHeight: 1.1,
+                letterSpacing: '-1.5px',
+                color: 'var(--text-primary)',
+                marginBottom: 20,
               }}
             >
-              {/* Corner marks */}
-              {[['0 0', '0 0'], ['100% 0', '0 0'], ['0 100%', '0 0'], ['100% 100%', '0 0']].map(([tl], ci) => (
-                <span key={ci} style={{
-                  position: 'absolute',
-                  width: 8, height: 8,
-                  border: '1px solid var(--accent-cyan)',
-                  top:    ci < 2 ? -1 : 'auto',
-                  bottom: ci >= 2 ? -1 : 'auto',
-                  left:   ci % 2 === 0 ? -1 : 'auto',
-                  right:  ci % 2 === 1 ? -1 : 'auto',
-                  borderRight:  ci % 2 === 0 ? 'none' : undefined,
-                  borderLeft:   ci % 2 === 1 ? 'none' : undefined,
-                  borderBottom: ci < 2  ? 'none' : undefined,
-                  borderTop:    ci >= 2 ? 'none' : undefined,
-                }} />
-              ))}
-              ENTER
-            </motion.button>
-          </motion.div>
+              Your AI{' '}
+              <span style={{ background: 'linear-gradient(135deg, var(--accent), var(--accent-violet))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+                Teaching
+              </span>
+              {' '}Assistant
+            </motion.h1>
 
-          {/* Already have an account */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1.5 }}
-            style={{ marginTop: 24, fontSize: 13, color: 'var(--text-muted)', fontFamily: 'var(--font-body)', letterSpacing: 0.5 }}
-          >
-            Already have an account?{' '}
-            <button
-              onClick={() => navigate('/login')}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--accent-cyan)', fontSize: 13, fontFamily: 'var(--font-body)', textDecoration: 'underline', textDecorationStyle: 'dotted', textUnderlineOffset: 4 }}
+            <motion.p
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.26, duration: 0.4 }}
+              style={{ fontFamily: 'var(--font-body)', fontSize: 17, color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 32, maxWidth: 460 }}
             >
-              Sign in
-            </button>
+              Paste any YouTube playlist and Nova transforms it into an interactive learning experience — with AI summaries, exams, mind maps and a personal tutor.
+            </motion.p>
+
+            {/* Trust bullets */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.34, duration: 0.4 }}
+              style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 36 }}
+            >
+              {['No credit card required', 'Works with any YouTube playlist', 'AI-powered in under 2 minutes'].map((t, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <HiOutlineCheckCircle size={15} style={{ color: 'var(--accent-success)', flexShrink: 0 }} />
+                  <span style={{ fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--text-secondary)' }}>{t}</span>
+                </div>
+              ))}
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4, duration: 0.4 }}
+              style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}
+            >
+              <button onClick={onSignup} className="btn-primary" style={{ fontSize: 15, padding: '12px 28px', gap: 10 }}>
+                Start Learning Free
+                <HiOutlineArrowRight size={16} />
+              </button>
+              <button onClick={onLogin} className="btn-ghost" style={{ fontSize: 14, padding: '11px 22px' }}>
+                Sign in
+              </button>
+            </motion.div>
+          </div>
+
+          {/* Right: Nova hero */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.25, duration: 0.5, type: 'spring', damping: 20 }}
+            style={{ flex: '0 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}
+          >
+            <div className="nova-float" style={{ position: 'relative' }}>
+              <Nova size={220} state="idle" assembly={heroVal} showGlow />
+            </div>
+            <div style={{
+              background: 'var(--bg-surface)',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-lg)',
+              padding: '12px 20px',
+              display: 'flex', alignItems: 'center', gap: 10,
+              maxWidth: 280,
+            }}>
+              <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--accent-success)', boxShadow: '0 0 6px rgba(16,185,129,0.5)', flexShrink: 0 }} />
+              <span style={{ fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+                "What would you like to learn today?"
+              </span>
+            </div>
           </motion.div>
         </div>
-
-        {/* ── CREDITS (bottom) ── */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.8, duration: 1 }}
-          style={{
-            position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 10,
-            padding: '24px 40px',
-            background: 'linear-gradient(to top, rgba(2,2,9,0.95) 0%, transparent 100%)',
-            display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12,
-          }}
-        >
-          {/* Team */}
-          <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
-            {credits.map((c, i) => (
-              <motion.div
-                key={c.id}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 1.9 + i * 0.08 }}
-                style={{ textAlign: 'center' }}
-              >
-                <div style={{ fontSize: 9, color: 'var(--accent-cyan)', letterSpacing: 2, fontFamily: 'var(--font-display)', marginBottom: 3 }}>
-                  {c.role.toUpperCase()}
-                </div>
-                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: 0.5 }}>{c.name}</div>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-muted)' }}>{c.id}</div>
-              </motion.div>
-            ))}
-          </div>
-          {/* University */}
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: 10, color: 'var(--text-muted)', letterSpacing: 2, fontFamily: 'var(--font-display)' }}>BENNETT UNIVERSITY</div>
-            <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 2 }}>Greater Noida · CSE · 2024–25</div>
-          </div>
-        </motion.div>
 
         {/* Scroll indicator */}
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 2.2 }}
-          style={{
-            position: 'absolute', bottom: 80, left: '50%', transform: 'translateX(-50%)',
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
-            color: 'var(--text-muted)', fontSize: 10, letterSpacing: 3, fontFamily: 'var(--font-display)',
-            zIndex: 10,
-          }}
+          animate={{ y: [0, 8, 0] }}
+          transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+          style={{ position: 'absolute', bottom: 32, left: '50%', transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, cursor: 'pointer' }}
+          onClick={() => window.scrollBy({ top: window.innerHeight, behavior: 'smooth' })}
         >
-          SCROLL
-          <motion.div
-            animate={{ y: [0, 8, 0] }}
-            transition={{ repeat: Infinity, duration: 1.5, ease: 'easeInOut' }}
-            style={{ width: 1, height: 32, background: 'linear-gradient(to bottom, var(--accent-cyan), transparent)' }}
-          />
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--text-muted)', letterSpacing: '2px' }}>SCROLL</span>
+          <div style={{ width: 1, height: 28, background: 'linear-gradient(to bottom, var(--accent-glow), transparent)' }} />
         </motion.div>
       </section>
 
-      {/* ── STICKY SCROLL ORB SECTION ─────────────────────────────── */}
-      <div
-        ref={stickyWrapRef}
-        style={{ height: `${(SLIDES.length + 1) * 100}vh`, position: 'relative' }}
-      >
-        <div style={{ position: 'sticky', top: 0, height: '100vh', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-primary)' }}>
-          {/* Background grid */}
-          <div className="cyber-grid" style={{ position: 'absolute', inset: 0, opacity: 0.3 }} />
-
-          {/* Ambient light from orb */}
-          <div style={{
-            position: 'absolute', top: '50%', left: '50%',
-            transform: 'translate(-50%,-50%)',
-            width: 600, height: 600, borderRadius: '50%',
-            background: `radial-gradient(circle, rgba(0,245,255,${0.04 + orbProgress * 0.04}) 0%, rgba(123,47,255,${0.03 + orbProgress * 0.03}) 40%, transparent 70%)`,
-            transition: 'background 0.3s',
-            pointerEvents: 'none',
-          }} />
-
-          <div style={{ position: 'relative', zIndex: 5, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 80, padding: '0 60px', maxWidth: 1200, width: '100%', flexWrap: 'wrap' }}>
-
-            {/* ── Orb ── */}
-            <div style={{ flexShrink: 0, position: 'relative' }}>
-              {/* Ring glow */}
-              {orbProgress > 0.7 && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: orbProgress > 0.7 ? (orbProgress - 0.7) * 3 : 0, scale: 1 }}
-                  style={{
-                    position: 'absolute', inset: -30,
-                    borderRadius: '50%',
-                    border: '1px solid rgba(0,245,255,0.2)',
-                    boxShadow: '0 0 40px rgba(0,245,255,0.1)',
-                    animation: 'spin-slow 8s linear infinite',
-                    pointerEvents: 'none',
-                  }}
-                />
-              )}
-              <ParticleOrb progressRef={orbProgressRef} />
-            </div>
-
-            {/* ── Feature text ── */}
-            <div style={{ maxWidth: 420 }}>
-              {/* Progress indicator */}
-              <div style={{ display: 'flex', gap: 8, marginBottom: 32 }}>
-                {SLIDES.map((_, i) => (
-                  <div
-                    key={i}
-                    style={{
-                      height: 2,
-                      flex: 1,
-                      borderRadius: 1,
-                      background: i <= slideIndex ? 'var(--accent-cyan)' : 'rgba(255,255,255,0.1)',
-                      boxShadow: i <= slideIndex ? '0 0 8px var(--accent-cyan)' : 'none',
-                      transition: 'background 0.4s, box-shadow 0.4s',
-                    }}
-                  />
-                ))}
-              </div>
-
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={slideIndex}
-                  initial={{ opacity: 0, x: 30, filter: 'blur(8px)' }}
-                  animate={{ opacity: 1, x: 0, filter: 'blur(0px)' }}
-                  exit={{ opacity: 0, x: -30, filter: 'blur(8px)' }}
-                  transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-                >
-                  <div style={{
-                    fontFamily: 'var(--font-display)', fontSize: 10,
-                    letterSpacing: 4, color: 'var(--accent-cyan)', marginBottom: 16,
-                    display: 'flex', alignItems: 'center', gap: 8,
-                  }}>
-                    <span style={{ fontSize: 24 }}>{SLIDES[slideIndex].icon}</span>
-                    {SLIDES[slideIndex].label}
-                  </div>
-
-                  <h2 style={{
-                    fontFamily: 'var(--font-display)', fontWeight: 900,
-                    fontSize: 'clamp(24px, 3.5vw, 42px)',
-                    color: 'var(--text-primary)', lineHeight: 1.15,
-                    marginBottom: 20,
-                    letterSpacing: '-0.5px',
-                  }}>
-                    {SLIDES[slideIndex].title}
-                  </h2>
-
-                  <p style={{
-                    fontFamily: 'var(--font-body)', fontSize: 17,
-                    fontWeight: 400, color: 'var(--text-muted)',
-                    lineHeight: 1.75, marginBottom: 36,
-                  }}>
-                    {SLIDES[slideIndex].desc}
-                  </p>
-
-                  <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                    <button
-                      onClick={() => navigate('/signup')}
-                      className="btn-primary"
-                      style={{ fontSize: 11, padding: '12px 28px', letterSpacing: 2 }}
-                    >
-                      GET STARTED
-                    </button>
-                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-muted)' }}>
-                      {slideIndex + 1} / {SLIDES.length}
-                    </div>
-                  </div>
-                </motion.div>
-              </AnimatePresence>
-            </div>
-          </div>
-
-          {/* Scroll progress bar */}
-          <div style={{
-            position: 'absolute', bottom: 0, left: 0, right: 0, height: 2,
-            background: 'rgba(255,255,255,0.06)',
-          }}>
-            <div style={{
-              height: '100%',
-              width: `${orbProgress * 100}%`,
-              background: 'linear-gradient(90deg, var(--accent-cyan), var(--accent-violet))',
-              boxShadow: '0 0 10px var(--accent-cyan)',
-              transition: 'width 0.1s',
-            }} />
-          </div>
-        </div>
-      </div>
-
-      {/* ── FINAL CTA ─────────────────────────────────────────────── */}
-      <section style={{
-        padding: '120px 40px',
-        background: 'linear-gradient(180deg, var(--bg-primary) 0%, #030315 100%)',
-        textAlign: 'center',
-        position: 'relative',
-        overflow: 'hidden',
-      }}>
-        <div className="cyber-grid" style={{ position: 'absolute', inset: 0, opacity: 0.2 }} />
-        <div style={{ position: 'relative', zIndex: 5 }}>
+      {/* ── FEATURES ── */}
+      <section style={{ padding: '80px 40px', background: 'var(--bg-surface)', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
+        <div style={{ maxWidth: 1100, margin: '0 auto' }}>
           <motion.div
-            initial={{ opacity: 0, y: 32 }}
+            initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+            style={{ textAlign: 'center', marginBottom: 48 }}
           >
-            <div style={{ fontFamily: 'var(--font-display)', fontSize: 11, letterSpacing: 5, color: 'var(--accent-cyan)', marginBottom: 24 }}>
-              READY TO BEGIN
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--accent)', letterSpacing: '3px', marginBottom: 12, textTransform: 'uppercase' }}>
+              Everything you need
             </div>
-            <h2 style={{
-              fontFamily: 'var(--font-display)', fontWeight: 900,
-              fontSize: 'clamp(28px, 5vw, 60px)',
-              background: 'linear-gradient(135deg, #fff 30%, var(--accent-cyan) 70%)',
-              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
-              marginBottom: 20, letterSpacing: -1,
-            }}>
-              INITIALIZE YOUR LEARNING
+            <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 'clamp(26px, 4vw, 38px)', color: 'var(--text-primary)', letterSpacing: '-0.8px' }}>
+              One platform, every learning tool
             </h2>
-            <p style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-body)', fontSize: 17, marginBottom: 48, maxWidth: 440, margin: '0 auto 48px' }}>
-              Drop any YouTube course link. Let Nyra transform it into a complete AI-powered study experience.
-            </p>
-            <motion.button
-              onClick={() => navigate('/signup')}
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-              className="btn-primary"
-              style={{ fontSize: 13, padding: '16px 48px', letterSpacing: 3 }}
+          </motion.div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
+            {features.map((f, i) => (
+              <FeatureCard key={i} {...f} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── HOW IT WORKS + NOVA ASSEMBLY ── */}
+      <section ref={novaRef} style={{ padding: '80px 40px' }}>
+        <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', gap: 60, alignItems: 'center', flexWrap: 'wrap' }}>
+
+          {/* Left: Nova assembles on scroll */}
+          <div style={{ flex: '0 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+            <Nova size={240} state="thinking" assembly={assemblyVal} showGlow />
+            <AnimatePresence>
+              {assemblyVal > 0.7 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 8 }}
+                  style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-active)', borderRadius: 'var(--radius-lg)', padding: '10px 18px', fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--accent)', letterSpacing: '1px' }}
+                >
+                  Nova · analyzing...
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Right: Steps */}
+          <div style={{ flex: '1 1 340px' }}>
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              style={{ marginBottom: 40 }}
             >
-              LAUNCH EDUNOVA →
-            </motion.button>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--accent)', letterSpacing: '3px', marginBottom: 12, textTransform: 'uppercase' }}>How it works</div>
+              <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 'clamp(24px, 3.5vw, 34px)', color: 'var(--text-primary)', letterSpacing: '-0.8px', lineHeight: 1.2 }}>
+                From playlist to AI-powered course in minutes
+              </h2>
+            </motion.div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
+              <StepCard num="1" title="Paste your YouTube playlist" desc="Any public playlist works — lectures, tutorials, courses. Nova supports any topic." delay={0} />
+              <div style={{ height: 1, background: 'var(--border)', marginLeft: 54 }} />
+              <StepCard num="2" title="Nova analyzes it automatically" desc="AI extracts transcripts, identifies topics, difficulty, and key concepts across all videos." delay={0.08} />
+              <div style={{ height: 1, background: 'var(--border)', marginLeft: 54 }} />
+              <StepCard num="3" title="Learn smarter, not harder" desc="Use summaries, mind maps, quizzes, and chat with Nova to master the material faster." delay={0.16} />
+            </div>
+
+            <motion.div
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.3 }}
+              style={{ marginTop: 36 }}
+            >
+              <button onClick={onSignup} className="btn-primary" style={{ fontSize: 14, padding: '11px 24px' }}>
+                Try it free → <HiOutlineArrowRight size={15} />
+              </button>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── CTA BANNER ── */}
+      <section style={{ padding: '72px 40px', background: 'var(--bg-surface)', borderTop: '1px solid var(--border)' }}>
+        <div style={{ maxWidth: 680, margin: '0 auto', textAlign: 'center' }}>
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
+              <Nova size={80} state="active" assembly={1} showGlow={false} />
+            </div>
+            <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 'clamp(24px, 4vw, 38px)', color: 'var(--text-primary)', letterSpacing: '-0.8px', lineHeight: 1.2, marginBottom: 16 }}>
+              Ready to learn with Nova?
+            </h2>
+            <p style={{ fontFamily: 'var(--font-body)', fontSize: 16, color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 32 }}>
+              Join students who are learning faster with AI. No credit card, no limits.
+            </p>
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+              <button onClick={onSignup} className="btn-primary" style={{ fontSize: 15, padding: '13px 32px' }}>
+                Get started free
+              </button>
+              <button onClick={onLogin} className="btn-ghost" style={{ fontSize: 14, padding: '12px 24px' }}>
+                Sign in
+              </button>
+            </div>
           </motion.div>
         </div>
       </section>
 
+      {/* ── FOOTER ── */}
+      <footer style={{ padding: '28px 40px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <svg viewBox="0 0 160 176" fill="none" style={{ width: 22, height: 24 }}>
+            <path d="M 32 58 Q 30 28 80 26 Q 130 28 128 58 L 128 118 Q 128 142 108 147 L 80 151 L 52 147 Q 32 142 32 118 Z" fill="#0D1221" stroke="rgba(61,142,240,0.5)" strokeWidth="1.5"/>
+            <ellipse cx="60" cy="88" rx="11" ry="7" fill="#3D8EF0" opacity="0.7"/>
+            <ellipse cx="100" cy="88" rx="11" ry="7" fill="#3D8EF0" opacity="0.7"/>
+          </svg>
+          <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 14, color: 'var(--text-secondary)' }}>Edunova</span>
+        </div>
+        <div style={{ fontFamily: 'var(--font-body)', fontSize: 12, color: 'var(--text-muted)' }}>
+          Built with AI · Open source
+        </div>
+      </footer>
     </div>
   )
 }

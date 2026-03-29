@@ -3,26 +3,28 @@ import { motion, AnimatePresence } from 'framer-motion'
 import toast from 'react-hot-toast'
 import { sendMessage as apiSendMessage, getChat } from '../api'
 import useAuthStore from '../store/useAuthStore'
-import { HiOutlineX, HiOutlinePaperAirplane, HiOutlineChevronDown, HiOutlineTrash } from 'react-icons/hi'
+import { MiniNova } from './Nova'
+import {
+  HiOutlineChevronDown, HiOutlineTrash, HiOutlinePaperAirplane, HiOutlineXMark,
+} from 'react-icons/hi2'
 
-// Simple inline markdown
+// Simple inline markdown renderer
 function MsgContent({ text }) {
   const lines = text.split('\n')
   return (
-    <div style={{ fontSize: 13, lineHeight: 1.65 }}>
+    <div style={{ fontSize: 13, lineHeight: 1.65, fontFamily: 'var(--font-body)' }}>
       {lines.map((line, i) => {
-        if (line.startsWith('### ')) return <div key={i} style={{ fontFamily: 'Orbitron, sans-serif', fontSize: 11, color: '#00f5ff', letterSpacing: 1, marginTop: 10, marginBottom: 4 }}>{line.slice(4)}</div>
-        if (line.startsWith('## ')) return <div key={i} style={{ fontFamily: 'Orbitron, sans-serif', fontSize: 12, color: '#00f5ff', letterSpacing: 1, marginTop: 10, marginBottom: 4 }}>{line.slice(3)}</div>
-        if (line.startsWith('# '))  return <div key={i} style={{ fontFamily: 'Orbitron, sans-serif', fontSize: 13, color: '#00f5ff', letterSpacing: 1, marginTop: 10, marginBottom: 4 }}>{line.slice(2)}</div>
-        if (line.startsWith('- ') || line.startsWith('* ')) return <div key={i} style={{ paddingLeft: 12, marginBottom: 2 }}>· {line.slice(2)}</div>
-        if (!line.trim()) return <div key={i} style={{ height: 6 }} />
-        // Inline **bold** and `code`
+        if (line.startsWith('### ')) return <div key={i} style={{ fontFamily: 'var(--font-display)', fontSize: 12, color: 'var(--accent)', marginTop: 10, marginBottom: 4, fontWeight: 600 }}>{line.slice(4)}</div>
+        if (line.startsWith('## '))  return <div key={i} style={{ fontFamily: 'var(--font-display)', fontSize: 13, color: 'var(--accent)', marginTop: 10, marginBottom: 4, fontWeight: 600 }}>{line.slice(3)}</div>
+        if (line.startsWith('# '))   return <div key={i} style={{ fontFamily: 'var(--font-display)', fontSize: 14, color: 'var(--accent)', marginTop: 10, marginBottom: 4, fontWeight: 700 }}>{line.slice(2)}</div>
+        if (line.startsWith('- ') || line.startsWith('* ')) return <div key={i} style={{ paddingLeft: 12, marginBottom: 3, color: 'var(--text-primary)' }}>· {line.slice(2)}</div>
+        if (!line.trim()) return <div key={i} style={{ height: 5 }} />
         const parts = line.split(/(\*\*[^*]+\*\*|`[^`]+`)/g)
         return (
-          <div key={i} style={{ marginBottom: 2 }}>
+          <div key={i} style={{ marginBottom: 2, color: 'var(--text-primary)' }}>
             {parts.map((p, j) => {
-              if (p.startsWith('**') && p.endsWith('**')) return <strong key={j} style={{ color: '#00f5ff' }}>{p.slice(2,-2)}</strong>
-              if (p.startsWith('`') && p.endsWith('`'))   return <code key={j} style={{ fontFamily: 'JetBrains Mono, monospace', background: 'rgba(0,245,255,0.1)', padding: '1px 5px', borderRadius: 3, fontSize: 11, color: '#00f5ff' }}>{p.slice(1,-1)}</code>
+              if (p.startsWith('**') && p.endsWith('**')) return <strong key={j} style={{ color: 'var(--accent)', fontWeight: 600 }}>{p.slice(2,-2)}</strong>
+              if (p.startsWith('`') && p.endsWith('`'))   return <code key={j} style={{ fontFamily: 'var(--font-mono)', background: 'var(--accent-dim)', padding: '1px 5px', borderRadius: 4, fontSize: 11, color: 'var(--accent)' }}>{p.slice(1,-1)}</code>
               return <span key={j}>{p}</span>
             })}
           </div>
@@ -40,22 +42,17 @@ export default function ChatBot({ courseId, courseName }) {
   const [loading, setLoading]   = useState(false)
   const [historyLoading, setHistoryLoading] = useState(false)
   const endRef = useRef(null)
-
-  // courseId can be null (general) or a number (course-specific)
   const activeCourseId = courseId || null
 
-  useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages])
 
   useEffect(() => {
     if (!isOpen) return
-    if (activeCourseId) {
-      loadHistory()
-    } else {
+    if (activeCourseId) { loadHistory() }
+    else {
       setMessages([{
         role: 'assistant',
-        content: `**Hi! I'm Nyra** 🤖\n\nI'm your AI study companion. I can explain any concept, teach topics using the Socratic method, or help you understand difficult material.\n\nOpen a course for context-aware chat, or just ask me anything!`,
+        content: `**Hi! I'm Nova** ✦\n\nI'm your AI study companion. I can explain concepts, quiz you, or help you understand anything.\n\nOpen a course for context-aware learning, or just ask me anything!`,
         timestamp: new Date().toISOString(),
       }])
     }
@@ -70,133 +67,126 @@ export default function ChatBot({ courseId, courseName }) {
       if (msgs.length === 0) {
         setMessages([{
           role: 'assistant',
-          content: `**Course loaded: ${courseName || 'Ready'}** ✓\n\nAsk me anything about this course — I can explain topics, summarise content, quiz you, or help you understand difficult concepts.`,
+          content: `**Course loaded** ✓\n\nAsk me anything about **${courseName || 'this course'}** — I can explain topics, summarize content, quiz you, or help with anything you find difficult.`,
           timestamp: new Date().toISOString(),
         }])
-      } else {
-        setMessages(msgs)
-      }
+      } else { setMessages(msgs) }
     } catch {
-      setMessages([{ role: 'assistant', content: "Connection issue. Please try again.", timestamp: new Date().toISOString() }])
-    } finally {
-      setHistoryLoading(false)
-    }
+      setMessages([{ role: 'assistant', content: 'Connection issue. Please try again.', timestamp: new Date().toISOString() }])
+    } finally { setHistoryLoading(false) }
   }
 
   const send = async () => {
     if (!input.trim() || loading) return
-
     const userMsg = { role: 'user', content: input.trim(), timestamp: new Date().toISOString() }
     setMessages(prev => [...prev, userMsg])
     const sentInput = input.trim()
     setInput('')
     setLoading(true)
-
     try {
       const res = await apiSendMessage(activeCourseId || 0, sentInput)
       setMessages(res.data.messages)
     } catch (err) {
       const errMsg = err.response?.data?.error || "I'm having trouble right now. Please try again."
       setMessages(prev => [...prev, { role: 'assistant', content: errMsg, timestamp: new Date().toISOString() }])
-    } finally {
-      setLoading(false)
-    }
+    } finally { setLoading(false) }
   }
 
-  const clearChat = () => {
-    setMessages([{
-      role: 'assistant',
-      content: activeCourseId
-        ? `**Chat cleared.** Ask me anything about ${courseName || 'this course'}.`
-        : `**Chat cleared.** I'm ready — what would you like to learn?`,
-      timestamp: new Date().toISOString(),
-    }])
-  }
+  const clearChat = () => setMessages([{
+    role: 'assistant',
+    content: activeCourseId
+      ? `Chat cleared. Ready to help with **${courseName || 'this course'}**.`
+      : 'Chat cleared. What would you like to learn?',
+    timestamp: new Date().toISOString(),
+  }])
 
-  const handleKey = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() }
-  }
+  const handleKey = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }
 
   if (!user) return null
 
   return (
     <>
-      {/* Orb button */}
+      {/* Nova orb button */}
       <motion.button
         id="chatbot-orb"
-        whileHover={{ scale: 1.08 }}
-        whileTap={{ scale: 0.94 }}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
         onClick={() => setIsOpen(o => !o)}
         style={{
-          position: 'fixed', bottom: 28, right: 28, zIndex: 999,
-          width: 54, height: 54, borderRadius: '50%', border: 'none',
-          background: isOpen
-            ? 'linear-gradient(135deg, #f72585, #7b2fff)'
-            : 'linear-gradient(135deg, #7b2fff, #00f5ff)',
+          position: 'fixed', bottom: 24, right: 24, zIndex: 999,
+          width: 52, height: 52, borderRadius: '50%', border: 'none',
+          background: isOpen ? 'var(--accent-danger)' : 'var(--bg-surface)',
+          borderColor: isOpen ? 'transparent' : 'var(--border-active)',
+          borderWidth: 1, borderStyle: 'solid',
           cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 22, animation: 'orbPulse 2.5s ease-in-out infinite',
-          boxShadow: '0 0 24px rgba(123,47,255,0.5)',
+          boxShadow: isOpen ? '0 0 20px rgba(239,68,68,0.3)' : 'var(--shadow-glow)',
+          transition: 'all 0.2s',
         }}
       >
-        {isOpen ? '×' : '🤖'}
+        {isOpen
+          ? <HiOutlineXMark size={20} style={{ color: '#fff' }} />
+          : <MiniNova size={36} state="idle" />
+        }
       </motion.button>
 
       {/* Chat window */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.85, y: 16 }}
+            initial={{ opacity: 0, scale: 0.9, y: 12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.85, y: 16 }}
-            transition={{ type: 'spring', damping: 22, stiffness: 280 }}
+            exit={{ opacity: 0, scale: 0.9, y: 12 }}
+            transition={{ type: 'spring', damping: 24, stiffness: 300 }}
             style={{
-              position: 'fixed', bottom: 92, right: 28, zIndex: 998,
-              width: 370, maxHeight: 540,
+              position: 'fixed', bottom: 86, right: 24, zIndex: 998,
+              width: 360, maxHeight: 520,
               display: 'flex', flexDirection: 'column',
-              background: '#08081a',
-              border: '1px solid rgba(123,47,255,0.35)',
-              borderRadius: 12,
-              boxShadow: '0 24px 64px rgba(0,0,0,0.7), 0 0 40px rgba(123,47,255,0.12)',
+              background: 'var(--bg-surface)',
+              border: '1px solid var(--border-active)',
+              borderRadius: 'var(--radius-xl)',
+              boxShadow: 'var(--shadow-lg), var(--shadow-glow)',
               overflow: 'hidden',
             }}
           >
             {/* Header */}
             <div style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: '13px 16px',
-              background: 'linear-gradient(135deg, rgba(123,47,255,0.12), rgba(0,245,255,0.06))',
-              borderBottom: '1px solid rgba(255,255,255,0.06)',
+              padding: '12px 14px',
+              background: 'var(--bg-elevated)',
+              borderBottom: '1px solid var(--border)',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ fontSize: 20 }}>🤖</div>
+                <MiniNova size={32} state={loading ? 'thinking' : 'idle'} />
                 <div>
-                  <div style={{ fontFamily: 'Orbitron, sans-serif', fontSize: 12, fontWeight: 700, color: '#dde4f0', letterSpacing: 1 }}>NYRA</div>
-                  <div style={{ fontSize: 10, color: '#4a5070', fontFamily: 'JetBrains Mono, monospace' }}>
-                    {activeCourseId ? `COURSE #${activeCourseId}` : 'GENERAL MODE'}
+                  <div style={{ fontFamily: 'var(--font-display)', fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Nova</div>
+                  <div style={{ fontSize: 10, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                    {activeCourseId ? courseName || `Course #${activeCourseId}` : 'General mode'}
                   </div>
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 4 }}>
-                <button onClick={clearChat} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#4a5070', padding: '4px 6px', borderRadius: 4 }}
-                  onMouseEnter={e => e.currentTarget.style.color = '#f72585'}
-                  onMouseLeave={e => e.currentTarget.style.color = '#4a5070'}
-                  title="Clear chat">
-                  <HiOutlineTrash size={15} />
+                <button onClick={clearChat}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '4px 6px', borderRadius: 6, transition: 'color 0.15s' }}
+                  onMouseEnter={e => e.currentTarget.style.color = 'var(--accent-danger)'}
+                  onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
+                  title="Clear chat"
+                >
+                  <HiOutlineTrash size={14} />
                 </button>
-                <button onClick={() => setIsOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#4a5070', padding: '4px 6px', borderRadius: 4 }}
-                  onMouseEnter={e => e.currentTarget.style.color = '#dde4f0'}
-                  onMouseLeave={e => e.currentTarget.style.color = '#4a5070'}>
+                <button onClick={() => setIsOpen(false)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '4px 6px', borderRadius: 6, transition: 'color 0.15s' }}
+                  onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
+                  onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
+                >
                   <HiOutlineChevronDown size={16} />
                 </button>
               </div>
             </div>
 
             {/* Messages */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: '14px 14px 8px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '12px 12px 6px', display: 'flex', flexDirection: 'column', gap: 10 }}>
               {historyLoading ? (
-                <div style={{ textAlign: 'center', padding: '40px 0', color: '#4a5070', fontSize: 12, fontFamily: 'Orbitron, sans-serif', letterSpacing: 1 }}>
-                  LOADING...
-                </div>
+                <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)', fontSize: 12 }}>Loading history...</div>
               ) : messages.map((msg, i) => {
                 const isUser = msg.role === 'user'
                 return (
@@ -204,34 +194,30 @@ export default function ChatBot({ courseId, courseName }) {
                     key={i}
                     initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.2 }}
-                    style={{ display: 'flex', justifyContent: isUser ? 'flex-end' : 'flex-start', alignItems: 'flex-end', gap: 7 }}
+                    transition={{ duration: 0.18 }}
+                    style={{ display: 'flex', justifyContent: isUser ? 'flex-end' : 'flex-start', alignItems: 'flex-end', gap: 6 }}
                   >
-                    {!isUser && (
-                      <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'linear-gradient(135deg, #7b2fff, #00f5ff)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, flexShrink: 0, marginBottom: 2 }}>🤖</div>
-                    )}
+                    {!isUser && <MiniNova size={24} state={loading && i === messages.length - 1 ? 'thinking' : 'idle'} />}
                     <div style={{
-                      maxWidth: '80%', padding: '9px 13px',
+                      maxWidth: '80%', padding: '8px 12px',
                       borderRadius: isUser ? '12px 3px 12px 12px' : '3px 12px 12px 12px',
-                      background: isUser
-                        ? 'linear-gradient(135deg, rgba(0,245,255,0.12), rgba(123,47,255,0.12))'
-                        : 'rgba(255,255,255,0.04)',
-                      border: `1px solid ${isUser ? 'rgba(0,245,255,0.18)' : 'rgba(255,255,255,0.07)'}`,
-                      color: '#c8d0e0',
+                      background: isUser ? 'var(--accent-dim)' : 'var(--bg-elevated)',
+                      border: `1px solid ${isUser ? 'var(--border-active)' : 'var(--border)'}`,
                     }}>
-                      {isUser ? <span style={{ fontSize: 13 }}>{msg.content}</span> : <MsgContent text={msg.content} />}
+                      {isUser
+                        ? <span style={{ fontSize: 13, color: 'var(--text-primary)', fontFamily: 'var(--font-body)' }}>{msg.content}</span>
+                        : <MsgContent text={msg.content} />
+                      }
                     </div>
                   </motion.div>
                 )
               })}
 
               {loading && (
-                <div style={{ display: 'flex', alignItems: 'flex-end', gap: 7 }}>
-                  <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'linear-gradient(135deg, #7b2fff, #00f5ff)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, flexShrink: 0 }}>🤖</div>
-                  <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '3px 12px 12px 12px', padding: '11px 16px', display: 'flex', gap: 5 }}>
-                    {[0,1,2].map(i => (
-                      <div key={i} style={{ width: 5, height: 5, borderRadius: '50%', background: '#7b2fff', animation: `glowPulse 1.2s ease-in-out ${i*0.2}s infinite` }} />
-                    ))}
+                <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6 }}>
+                  <MiniNova size={24} state="thinking" />
+                  <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '3px 12px 12px 12px', padding: '11px 14px', display: 'flex', gap: 4 }}>
+                    {[0,1,2].map(i => <div key={i} style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--accent)', animation: `glowPulse 1.2s ease-in-out ${i*0.2}s infinite` }} />)}
                   </div>
                 </div>
               )}
@@ -239,41 +225,38 @@ export default function ChatBot({ courseId, courseName }) {
             </div>
 
             {/* Input */}
-            <div style={{ padding: '10px 12px 12px', borderTop: '1px solid rgba(255,255,255,0.05)', background: 'rgba(0,0,0,0.2)' }}>
-              <div style={{ display: 'flex', gap: 7, alignItems: 'flex-end' }}>
+            <div style={{ padding: '8px 10px 10px', borderTop: '1px solid var(--border)', background: 'var(--bg-elevated)' }}>
+              <div style={{ display: 'flex', gap: 6, alignItems: 'flex-end' }}>
                 <textarea
                   value={input}
                   onChange={e => setInput(e.target.value)}
                   onKeyDown={handleKey}
-                  placeholder="Ask Nyra anything..."
+                  placeholder="Ask Nova anything..."
                   rows={1}
                   style={{
-                    flex: 1, background: 'rgba(255,255,255,0.04)',
-                    border: '1px solid rgba(255,255,255,0.08)',
-                    borderRadius: 8, color: '#c8d0e0', padding: '9px 12px',
-                    fontSize: 13, fontFamily: 'Rajdhani, sans-serif', fontWeight: 500,
-                    resize: 'none', outline: 'none', maxHeight: 90, overflowY: 'auto',
+                    flex: 1, background: 'var(--bg-base)', border: '1px solid var(--border)',
+                    borderRadius: 'var(--radius-md)', color: 'var(--text-primary)', padding: '8px 12px',
+                    fontSize: 13, fontFamily: 'var(--font-body)', resize: 'none', outline: 'none',
+                    maxHeight: 80, overflowY: 'auto', transition: 'border-color 0.15s',
                   }}
-                  onFocus={e => e.target.style.borderColor = 'rgba(123,47,255,0.5)'}
-                  onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.08)'}
+                  onFocus={e => e.target.style.borderColor = 'var(--border-active)'}
+                  onBlur={e => e.target.style.borderColor = 'var(--border)'}
                 />
                 <button
                   onClick={send}
                   disabled={!input.trim() || loading}
                   style={{
-                    width: 36, height: 36, borderRadius: 8, border: 'none', cursor: 'pointer',
-                    background: input.trim() && !loading
-                      ? 'linear-gradient(135deg, #7b2fff, #00f5ff)'
-                      : 'rgba(255,255,255,0.08)',
+                    width: 34, height: 34, borderRadius: 'var(--radius-md)', border: 'none', cursor: 'pointer',
+                    background: input.trim() && !loading ? 'var(--accent)' : 'var(--border)',
                     flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    transition: 'all 0.2s',
+                    transition: 'all 0.15s',
                   }}
                 >
-                  <HiOutlinePaperAirplane size={15} style={{ color: input.trim() && !loading ? '#fff' : '#4a5070', transform: 'rotate(90deg)' }} />
+                  <HiOutlinePaperAirplane size={14} style={{ color: input.trim() && !loading ? '#fff' : 'var(--text-muted)', transform: 'rotate(-45deg)' }} />
                 </button>
               </div>
-              <div style={{ fontSize: 10, color: '#4a5070', marginTop: 6, fontFamily: 'JetBrains Mono, monospace' }}>
-                ENTER ↵ send  ·  SHIFT+ENTER newline
+              <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 5, fontFamily: 'var(--font-mono)', paddingLeft: 2 }}>
+                Enter to send · Shift+Enter for newline
               </div>
             </div>
           </motion.div>
